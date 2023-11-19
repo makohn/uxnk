@@ -10,7 +10,8 @@ fun main() {
 
     while (true) if (uxn.step() == UxnMachine.MachineState.Stopped) break
 
-    for (code in OpCode.entries) {
-        println("$code -> ${code.base()} | s=${code.short()} | r=${code.ret()} | k=${code.keep()}")
+    for (code in 0x0000u..0xf00fu) {
+        val c = code.toUByte()
+        println("$c -> ${c.opCode()} | s=${c.hasShortFlag()} | r=${c.hasReturnFlag()} | k=${c.hasKeepFlag()}")
     }
 }
