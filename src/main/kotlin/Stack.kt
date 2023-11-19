@@ -1,18 +1,8 @@
 typealias Stack = ArrayDeque<UByte>
 
-interface StackMode {
-    fun Stack.pushImpl(element: UByte) = addLast(element)
-    fun Stack.popImpl(n: Int): List<UByte>
-}
-
-class KeepMode : StackMode {
-    override fun Stack.popImpl(n: Int) = takeLast(n).reversed()
-}
-
-class RemoveMode : StackMode {
-    override fun Stack.popImpl(n: Int) = buildList<UByte> {
-        add(removeLast())
-    }
+fun Stack.popAndKeep(n: Int) = takeLast(n).reversed()
+fun Stack.popAndRemove(n: Int) = buildList<UByte> {
+    add(removeLast())
 }
 
 interface OpMode {
@@ -37,21 +27,23 @@ interface OpMode {
     }
 }
 
-class ByteMode : OpMode {
-    context(StackMode) override fun Stack.push(element: UShort) = pushImpl(element.toUByte())
-    context(StackMode) override fun Stack.pop() = pop(1).first().toUShort()
-    context(StackMode) override fun Stack.pop(n: Int) = popImpl(n).map { it.toUShort() }
+@JvmInline
+value class ByteMode(private val keep: Boolean) : OpMode {
+    override fun Stack.push(element: UShort) = addLast(element.toUByte())
+    override fun Stack.pop() = pop(1).first().toUShort()
+    override fun Stack.pop(n: Int) = (if(keep) popAndKeep(n) else popAndRemove(n)).map { it.toUShort() }
 }
 
-class ShortMode : OpMode {
-    context(StackMode) override fun Stack.push(element: UShort) {
-        pushImpl((element.toUInt() shr 8).toUByte())
-        pushImpl(element.toUByte())
+@JvmInline
+value class ShortMode(private val keep: Boolean) : OpMode {
+    override fun Stack.push(element: UShort) {
+        addLast((element.toUInt() shr 8).toUByte())
+        addLast(element.toUByte())
     }
 
-    context(StackMode) override fun Stack.pop() = pop(1).first()
+    override fun Stack.pop() = pop(1).first()
 
-    context(StackMode) override fun Stack.pop(n: Int) = popImpl(n * 2).chunked(2).map { (lo, hi) ->
-        ((hi.toUInt() shl 8) + lo).toUShort()
-    }
+    override fun Stack.pop(n: Int) =
+        (if (keep) popAndKeep(n * 2) else popAndRemove(n * 2))
+            .chunked(2).map { (lo, hi) -> ((hi.toUInt() shl 8) + lo).toUShort() }
 }

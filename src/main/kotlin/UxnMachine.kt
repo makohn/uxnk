@@ -5,11 +5,6 @@ data class UxnMachine(
     private var pc: Int = 0x100
 ) {
 
-    private val shortMode = ShortMode()
-    private val byteMode = ByteMode()
-    private val keepMode = KeepMode()
-    private val removeMode = RemoveMode()
-
     enum class MachineState {
         Running, Stopped
     }
@@ -22,10 +17,10 @@ data class UxnMachine(
 
     fun step(): MachineState {
         val instruction = memory[pc++]
-        val opMode = if (instruction.hasShortFlag()) shortMode else byteMode
-        val stackMode = if (instruction.hasKeepFlag()) keepMode else removeMode
         val stack = if (instruction.hasReturnFlag()) returnStack else workingStack
-        with(stackMode) {
+        val keep = instruction.hasKeepFlag()
+        val opMode = if (instruction.hasShortFlag()) ShortMode(keep) else ByteMode(keep)
+
             with(opMode) {
                 when (instruction) {
                     OpCode.BRK -> {
@@ -45,11 +40,10 @@ data class UxnMachine(
                     else -> evaluate(instruction, stack)
                 }
             }
-        }
         return MachineState.Running
     }
 
-    context(StackMode, OpMode)
+    context(OpMode)
     private fun evaluate(instruction: UByte, stack: ArrayDeque<UByte>) {
         when (instruction.opCode()) {
             OpCode.INC -> stack.pushUShort { a -> a.inc() }
