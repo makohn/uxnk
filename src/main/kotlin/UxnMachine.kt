@@ -21,25 +21,32 @@ data class UxnMachine(
         val keep = instruction.hasKeepFlag()
         val opMode = if (instruction.hasShortFlag()) ShortMode(keep) else ByteMode(keep)
 
-            with(opMode) {
-                when (instruction) {
-                    OpCode.BRK -> {
-                        return MachineState.Stopped
-                    }
-
-                    OpCode.LIT -> {
-                        workingStack.addLast(memory[pc])
-                        pc++
-                    }
-
-                    OpCode.DEO -> {
-                        val device = workingStack.removeLast()
-                        print(workingStack.removeLast().toInt().toChar())
-                    }
-
-                    else -> evaluate(instruction, stack)
-                }
+        when (instruction) {
+            OpCode.BRK -> {
+                return MachineState.Stopped
             }
+
+            OpCode.JCI, OpCode.JMI, OpCode.JSI -> {
+                pc+=2
+                when (instruction) {
+                    OpCode.JCI -> if (workingStack.removeLast() == 0x0u.toUByte()) return MachineState.Running
+                    OpCode.JSI -> returnStack.pushShort(pc.toUShort())
+                }
+                pc += toUShort(memory[pc-2], memory[pc-1]).toInt()
+            }
+
+            OpCode.LIT -> {
+                workingStack.addLast(memory[pc])
+                pc++
+            }
+
+            OpCode.DEO -> {
+                val device = workingStack.removeLast()
+                print(workingStack.removeLast().toInt().toChar())
+            }
+
+            else -> with(opMode) { evaluate(instruction, stack) }
+        }
         return MachineState.Running
     }
 

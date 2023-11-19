@@ -5,6 +5,22 @@ fun Stack.popAndRemove(n: Int) = buildList<UByte> {
     add(removeLast())
 }
 
+fun Stack.pushShort(element: UShort) {
+    addLast((element.toUInt() shr 8).toUByte())
+    addLast(element.toUByte())
+}
+
+fun Stack.pushByte(element: UShort) = addLast(element.toUByte())
+fun Stack.popShort(n: Int, keep: Boolean = false) =
+    (if (keep) popAndKeep(n * 2) else popAndRemove(n * 2))
+        .chunked(2).map { (lo, hi) -> toUShort(lo, hi) }
+
+fun Stack.popByte(n: Int, keep: Boolean = false) =
+    (if (keep) popAndKeep(n) else popAndRemove(n)).map { it.toUShort() }
+
+fun Stack.popShort() = popShort(1).first()
+fun Stack.popByte() = popByte(1).first().toUShort()
+
 interface OpMode {
     fun Stack.push(element: UShort)
     fun Stack.pop(): UShort
@@ -29,21 +45,14 @@ interface OpMode {
 
 @JvmInline
 value class ByteMode(private val keep: Boolean) : OpMode {
-    override fun Stack.push(element: UShort) = addLast(element.toUByte())
-    override fun Stack.pop() = pop(1).first().toUShort()
-    override fun Stack.pop(n: Int) = (if(keep) popAndKeep(n) else popAndRemove(n)).map { it.toUShort() }
+    override fun Stack.push(element: UShort) = pushByte(element)
+    override fun Stack.pop() = popByte()
+    override fun Stack.pop(n: Int) = popByte(n, keep)
 }
 
 @JvmInline
 value class ShortMode(private val keep: Boolean) : OpMode {
-    override fun Stack.push(element: UShort) {
-        addLast((element.toUInt() shr 8).toUByte())
-        addLast(element.toUByte())
-    }
-
-    override fun Stack.pop() = pop(1).first()
-
-    override fun Stack.pop(n: Int) =
-        (if (keep) popAndKeep(n * 2) else popAndRemove(n * 2))
-            .chunked(2).map { (lo, hi) -> ((hi.toUInt() shl 8) + lo).toUShort() }
+    override fun Stack.push(element: UShort) = pushShort(element)
+    override fun Stack.pop() = popShort()
+    override fun Stack.pop(n: Int) = popShort(n, keep)
 }

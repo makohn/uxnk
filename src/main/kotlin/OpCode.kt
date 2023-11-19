@@ -46,3 +46,4 @@ fun UByte.hasShortFlag() = test(0x20u)
 fun UByte.hasReturnFlag() = test(0x40u)
 fun UByte.hasKeepFlag() = test(0x80u)
 fun UByte.opCode() = this and 0x3fu
+fun toUShort(lo: UByte, hi: UByte) = ((hi.toUInt() shl 8) + lo).toUShort()
