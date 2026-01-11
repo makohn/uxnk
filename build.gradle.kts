@@ -1,28 +1,38 @@
 plugins {
-    kotlin("jvm") version "1.9.20"
+    kotlin("jvm") version "2.3.0"
 }
 
-group = "de.makohn"
-version = "1.0-SNAPSHOT"
-
-repositories {
-    mavenCentral()
+tasks {
+    wrapper {
+        gradleVersion = "9.2.1"
+    }
 }
 
-dependencies {
-    testImplementation(kotlin("test"))
+sourceSets {
+    main {
+        kotlin.srcDir("src")
+    }
+    test {
+        kotlin.srcDir("test")
+    }
 }
 
-tasks.test {
+tasks.withType<JavaExec> {
+    isIgnoreExitValue = true
+    workingDir = rootProject.projectDir
+}
+
+tasks.withType<Test> {
     useJUnitPlatform()
+    workingDir = rootProject.projectDir
 }
 
 kotlin {
-    jvmToolchain(8)
+    compilerOptions {
+        freeCompilerArgs.addAll("-opt-in=kotlin.ExperimentalUnsignedTypes")
+    }
 }
 
-tasks.named("compileKotlin", org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask::class.java) {
-    compilerOptions {
-        freeCompilerArgs.addAll("-opt-in=kotlin.ExperimentalUnsignedTypes", "-Xcontext-receivers")
-    }
+dependencies {
+    testImplementation(kotlin("test-junit5"))
 }
