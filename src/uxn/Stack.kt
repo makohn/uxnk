@@ -1,3 +1,5 @@
+package uxn
+
 class UxnStack {
 
     private val bytes = UByteArray(256)

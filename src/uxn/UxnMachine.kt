@@ -1,4 +1,13 @@
-class UxnMachine {
+package uxn
+
+interface Device {
+    fun out(port: UByte, value: UByte)
+    fun outShort(port: UByte, value: UShort)
+    fun inp(port: UByte): UByte
+    fun inpShort(port: UByte): UShort
+}
+
+class UxnMachine(val device: Device) {
 
     val memory = UByteArray(65536)
     val workingStack = UxnStack()
@@ -13,6 +22,16 @@ class UxnMachine {
         rom.forEachIndexed { idx, byte ->
             memory[0x100 + idx] = byte
         }
+    }
+
+    fun eval(pc: UShort): Boolean {
+        this.pc = pc
+        return eval()
+    }
+
+    fun eval(): Boolean {
+        while (true) if (step() == MachineState.Stopped) break
+        return true
     }
 
     fun step(): MachineState {
@@ -50,17 +69,26 @@ class UxnMachine {
 
                     DEO -> {
                         stack.beginPop()
-                        val device = stack.pop()
-                        if (device == 0x18u.toUByte()) {
-                            if (short) {
-                                val output = stack.popShort()
-                                print(output.toInt().toChar())
-                            } else {
-                                val output = stack.pop()
-                                print(output.toInt().toChar())
-                            }
+                        val port = stack.pop()
+                        if (short) {
+                            val output = stack.popShort()
+                            device.outShort(port, output)
+                        } else {
+                            val output = stack.pop()
+                            device.out(port, output)
                         }
                         stack.endPop(keep)
+                    }
+
+                    DEI -> {
+                        stack.beginPop()
+                        val port = stack.pop()
+                        stack.endPop(keep)
+                        if (short) {
+                            stack.pushShort(device.inpShort(port))
+                        } else {
+                            stack.push(device.inp(port))
+                        }
                     }
 
                     LIT -> {
@@ -291,11 +319,7 @@ class UxnMachine {
                             stack.endPop(keep)
                             stack.push(if (b == a) 1u else 0u)
                         } else {
-                            stack.beginPop()
-                            val a = stack.pop()
-                            val b = stack.pop()
-                            stack.endPop(keep)
-                            stack.push(if (b == a) 1u else 0u)
+                            binaryOp(stack, keep) { a, b -> if (b == a) 1u else 0u }
                         }
                     }
 
@@ -307,11 +331,7 @@ class UxnMachine {
                             stack.endPop(keep)
                             stack.push(if (b != a) 1u else 0u)
                         } else {
-                            stack.beginPop()
-                            val a = stack.pop()
-                            val b = stack.pop()
-                            stack.endPop(keep)
-                            stack.push(if (b != a) 1u else 0u)
+                            binaryOp(stack, keep) { a, b -> if (b != a) 1u else 0u }
                         }
                     }
 
@@ -323,11 +343,7 @@ class UxnMachine {
                             stack.endPop(keep)
                             stack.push(if (b > a) 1u else 0u)
                         } else {
-                            stack.beginPop()
-                            val a = stack.pop()
-                            val b = stack.pop()
-                            stack.endPop(keep)
-                            stack.push(if (b > a) 1u else 0u)
+                            binaryOp(stack, keep) { a, b -> if (b > a) 1u else 0u }
                         }
                     }
 
@@ -339,107 +355,55 @@ class UxnMachine {
                             stack.endPop(keep)
                             stack.push(if (b < a) 1u else 0u)
                         } else {
-                            stack.beginPop()
-                            val a = stack.pop()
-                            val b = stack.pop()
-                            stack.endPop(keep)
-                            stack.push(if (b < a) 1u else 0u)
+                            binaryOp(stack, keep) { a, b -> if (b < a) 1u else 0u }
                         }
                     }
 
                     ADD -> {
                         if (short) {
-                            stack.beginPop()
-                            val a = stack.popShort()
-                            val b = stack.popShort()
-                            stack.endPop(keep)
-                            stack.pushShort((b + a).toUShort())
+                            binaryOpShort(stack, keep) { a, b -> (b + a).toUShort() }
                         } else {
-                            stack.beginPop()
-                            val a = stack.pop()
-                            val b = stack.pop()
-                            stack.endPop(keep)
-                            stack.push((b + a).toUByte())
+                            binaryOp(stack, keep) { a, b -> (b + a).toUByte() }
                         }
                     }
 
                     DIV -> {
                         if (short) {
-                            stack.beginPop()
-                            val a = stack.popShort()
-                            val b = stack.popShort()
-                            stack.endPop(keep)
-                            stack.pushShort(if (a == UShort_0) 0u else (b / a).toUShort())
+                            binaryOpShort(stack, keep) { a, b -> if (a == UShort_0) 0u else (b / a).toUShort() }
                         } else {
-                            stack.beginPop()
-                            val a = stack.pop()
-                            val b = stack.pop()
-                            stack.endPop(keep)
-                            stack.push(if (a == UByte_0) 0u else (b / a).toUByte())
+                            binaryOp(stack, keep) { a, b -> if (a == UByte_0) 0u else (b / a).toUByte() }
                         }
                     }
 
                     MUL -> {
                         if (short) {
-                            stack.beginPop()
-                            val a = stack.popShort()
-                            val b = stack.popShort()
-                            stack.endPop(keep)
-                            stack.pushShort((b * a).toUShort())
+                            binaryOpShort(stack, keep) { a, b -> (b * a).toUShort() }
                         } else {
-                            stack.beginPop()
-                            val a = stack.pop()
-                            val b = stack.pop()
-                            stack.endPop(keep)
-                            stack.push((b * a).toUByte())
+                            binaryOp(stack, keep) { a, b -> (b * a).toUByte() }
                         }
                     }
 
                     SUB -> {
                         if (short) {
-                            stack.beginPop()
-                            val a = stack.popShort()
-                            val b = stack.popShort()
-                            stack.endPop(keep)
-                            stack.pushShort((b - a).toUShort())
+                            binaryOpShort(stack, keep) { a, b -> (b - a).toUShort() }
                         } else {
-                            stack.beginPop()
-                            val a = stack.pop()
-                            val b = stack.pop()
-                            stack.endPop(keep)
-                            stack.push((b - a).toUByte())
+                            binaryOp(stack, keep) { a, b -> (b - a).toUByte() }
                         }
                     }
 
                     ORA -> {
                         if (short) {
-                            stack.beginPop()
-                            val a = stack.popShort()
-                            val b = stack.popShort()
-                            stack.endPop(keep)
-                            stack.pushShort(b or a)
+                            binaryOpShort(stack, keep) { a, b -> b or a }
                         } else {
-                            stack.beginPop()
-                            val a = stack.pop()
-                            val b = stack.pop()
-                            stack.endPop(keep)
-                            stack.push(b or a)
+                            binaryOp(stack, keep) { a, b -> b or a }
                         }
                     }
 
                     AND -> {
                         if (short) {
-                            stack.beginPop()
-                            val a = stack.popShort()
-                            val b = stack.popShort()
-                            stack.endPop(keep)
-                            stack.pushShort(b and a)
+                            binaryOpShort(stack, keep) { a, b -> b and a }
                         } else {
-                            stack.beginPop()
-                            val a = stack.pop()
-                            val b = stack.pop()
-                            stack.endPop(keep)
-                            stack.push(b and a)
+                            binaryOp(stack, keep) { a, b -> b and a }
                         }
                     }
 
@@ -448,6 +412,22 @@ class UxnMachine {
             }
         }
         return MachineState.Running
+    }
+
+    private inline fun binaryOp(stack: UxnStack, keep: Boolean, fn: (UByte, UByte) -> UByte) {
+        stack.beginPop()
+        val a = stack.pop()
+        val b = stack.pop()
+        stack.endPop(keep)
+        stack.push(fn(a, b))
+    }
+
+    private inline fun binaryOpShort(stack: UxnStack, keep: Boolean, fn: (UShort, UShort) -> UShort) {
+        stack.beginPop()
+        val a = stack.popShort()
+        val b = stack.popShort()
+        stack.endPop(keep)
+        stack.pushShort(fn(a, b))
     }
 
     private fun pcAdd(uShort: UShort) {

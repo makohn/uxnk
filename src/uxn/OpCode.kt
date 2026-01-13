@@ -1,3 +1,5 @@
+package uxn
+
 // https://wiki.xxiivv.com/site/uxntal_reference.html
 const val BRK: UByte = 0x00_u
 const val INC: UByte = 0x01_u
