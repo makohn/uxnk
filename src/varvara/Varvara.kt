@@ -3,32 +3,37 @@ package varvara
 import uxn.Device
 import uxn.UxnMachine
 
-const val DEV_SYSTEM: UByte = 0x00u
-const val DEV_CONSOLE: UByte = 0x10u
-const val DEV_SCREEN: UByte = 0x20u
-const val DEV_CONTROLLER: UByte = 0x80u
-const val DEV_MOUSE: UByte = 0x90u
-const val DEV_FILE_A: UByte = 0xa0u
-const val DEV_FILE_B: UByte = 0xb0u
-const val DEV_TIME: UByte = 0xc0u
-
 class Varvara : Device {
+
+    companion object {
+        const val SYSTEM: UByte = 0x00u
+        const val CONSOLE: UByte = 0x10u
+        const val SCREEN: UByte = 0x20u
+        const val CONTROLLER: UByte = 0x80u
+        const val MOUSE: UByte = 0x90u
+        const val FILE_A: UByte = 0xa0u
+        const val FILE_B: UByte = 0xb0u
+        const val TIME: UByte = 0xc0u
+    }
+
     lateinit var machine: UxnMachine
     private val console = Console()
+    private val dateTime = DateTime()
+    val system = System()
     val screen = Screen(this)
 
     override fun out(port: UByte, value: UByte) {
         val device = port and 0xf0u
         val p = port and 0xfu
         when (device) {
-            DEV_SYSTEM -> Unit
-            DEV_CONSOLE -> console.write(p, value)
-            DEV_SCREEN -> screen.write(p, value)
-            DEV_CONTROLLER -> Unit
-            DEV_MOUSE -> Unit
-            DEV_FILE_A -> Unit
-            DEV_FILE_B -> Unit
-            DEV_TIME -> Unit
+            SYSTEM -> system.write(p, value)
+            CONSOLE -> console.write(p, value)
+            SCREEN -> screen.write(p, value)
+            CONTROLLER -> Unit
+            MOUSE -> Unit
+            FILE_A -> Unit
+            FILE_B -> Unit
+            TIME -> dateTime.write(p, value)
         }
     }
 
@@ -36,14 +41,14 @@ class Varvara : Device {
         val device = port and 0xf0u
         val p = port and 0xfu
         when (device) {
-            DEV_SYSTEM -> Unit
-            DEV_CONSOLE -> console.writeShort(p, value)
-            DEV_SCREEN -> screen.writeShort(p, value)
-            DEV_CONTROLLER -> Unit
-            DEV_MOUSE -> Unit
-            DEV_FILE_A -> Unit
-            DEV_FILE_B -> Unit
-            DEV_TIME -> Unit
+            SYSTEM -> system.writeShort(p, value)
+            CONSOLE -> console.writeShort(p, value)
+            SCREEN -> screen.writeShort(p, value)
+            CONTROLLER -> Unit
+            MOUSE -> Unit
+            FILE_A -> Unit
+            FILE_B -> Unit
+            TIME -> dateTime.writeShort(p, value)
         }
     }
 
@@ -51,14 +56,14 @@ class Varvara : Device {
         val device = port and 0xf0u
         val p = port and 0xfu
         return when (device) {
-//            DEV_SYSTEM -> Unit
-//            DEV_CONSOLE -> console.writeShort(p, value)
-            DEV_SCREEN -> screen.read(p)
-//            DEV_CONTROLLER -> Unit
-//            DEV_MOUSE -> Unit
-//            DEV_FILE_A -> Unit
-//            DEV_FILE_B -> Unit
-//            DEV_TIME -> Unit
+            SYSTEM -> system.read(p)
+//            CONSOLE -> console.writeShort(p, value)
+            SCREEN -> screen.read(p)
+//            CONTROLLER -> Unit
+//            MOUSE -> Unit
+//            FILE_A -> Unit
+//            FILE_B -> Unit
+            TIME -> dateTime.read(p)
             else -> 0x0u
         }
     }
@@ -67,14 +72,14 @@ class Varvara : Device {
         val device = port and 0xf0u
         val p = port and 0xfu
         return when (device) {
-//            DEV_SYSTEM -> Unit
-//            DEV_CONSOLE -> console.writeShort(p, value)
-            DEV_SCREEN -> screen.readShort(p)
-//            DEV_CONTROLLER -> Unit
-//            DEV_MOUSE -> Unit
-//            DEV_FILE_A -> Unit
-//            DEV_FILE_B -> Unit
-//            DEV_TIME -> Unit
+            SYSTEM -> system.readShort(p)
+//            CONSOLE -> console.writeShort(p, value)
+            SCREEN -> screen.readShort(p)
+//            CONTROLLER -> Unit
+//            MOUSE -> Unit
+//            FILE_A -> Unit
+//            FILE_B -> Unit
+            TIME -> dateTime.readShort(p)
             else -> 0x0u
         }
     }

@@ -18,8 +18,10 @@ class ScreenPanel(private val screen: Screen) : JPanel() {
 
     override fun paintComponent(g: Graphics?) {
         super.paintComponent(g)
-        g!!.drawImage(screen.bg, 0, 0, null)
-        g.drawImage(screen.fg, 0, 0, null)
+        g!!.apply {
+            drawImage(screen.bg, 0, 0, null)
+            drawImage(screen.fg, 0, 0, null)
+        }
     }
 }
 
@@ -28,16 +30,18 @@ fun main() {
     val uxn = UxnMachine(varvara)
     varvara.machine = uxn
     val screenPanel = ScreenPanel(varvara.screen)
-    val rom = File("rom/label.rom").readBytes().toUByteArray()
+    val rom = File("rom/catclock.rom").readBytes().toUByteArray()
     uxn.loadRom(rom)
 
+    varvara.screen.repaint = { screenPanel.repaint() }
+
     val timer = Timer(1000 / 60) {
-        screenPanel.repaint()
+        uxn.eval(varvara.screen.vector)
     }
-    timer.start()
 
     thread {
         uxn.eval()
+        timer.start()
     }
 
     val frame = JFrame("UXN")

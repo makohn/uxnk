@@ -155,6 +155,16 @@ class UxnMachine(val device: Device) {
                         stack.push(memory[address])
                     }
 
+                    STA -> {
+                        stack.beginPop()
+                        val address = stack.popShort()
+                        if (short) {
+                            memory[address + 1u] = stack.pop()
+                        }
+                        memory[address] = stack.pop()
+                        stack.endPop(keep)
+                    }
+
                     OVR -> {
                         if (short) {
                             stack.beginPop()

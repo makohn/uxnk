@@ -10,19 +10,17 @@ class Screen(val varvara: Varvara) {
     val uxn: UxnMachine
         get() = varvara.machine
 
-    val bg = BufferedImage(600, 400, BufferedImage.TYPE_INT_ARGB)
-    val fg = BufferedImage(600, 400, BufferedImage.TYPE_INT_ARGB)
+    val bg = BufferedImage(600, 600, BufferedImage.TYPE_INT_ARGB)
+    val fg = BufferedImage(600, 600, BufferedImage.TYPE_INT_ARGB)
 
     companion object {
+        const val VECTOR: UByte = 0x0u
         const val WIDTH: UByte = 0x2u
         const val HEIGHT: UByte = 0x4u
-
         const val AUTO: UByte = 0x6u
         const val X: UByte = 0x8u
         const val Y: UByte = 0xau
-
         const val ADDRESS: UByte = 0xcu
-
         const val PIXEL: UByte = 0xeu
         const val SPRITE: UByte = 0xfu
 
@@ -30,6 +28,8 @@ class Screen(val varvara: Varvara) {
         const val BOTTOM_LEFT: UByte = 0x10u
         const val UPPER_RIGHT: UByte = 0x20u
         const val UPPER_LEFT: UByte = 0x30u
+
+        private val TRANSPARENT = Color(0, 0, 0, 0)
     }
 
     private val blendingModes = arrayOf(
@@ -39,27 +39,35 @@ class Screen(val varvara: Varvara) {
         intArrayOf(2, 3, 1, 2, 2, 3, 1, 2, 2, 3, 1, 2, 2, 3, 1, 2),
     )
 
-    // TODO: This should actually be provided by the system device
-    private val colors = arrayOf(
-        Color(255, 255, 255),
-        Color(0, 0, 0),
-        Color(119, 221, 187),
-        Color(255, 102, 34)
-    )
+    private val colors: Array<Color> by lazy {
+        val system = varvara.system
+        val r = system.red.toInt()
+        val g = system.green.toInt()
+        val b = system.blue.toInt()
+        arrayOf(
+            Color((r and 0xf000) shr 8, (g and 0xf000) shr 8, (b and 0xf000) shr 8),
+            Color((r and 0x0f00) shr 4, (g and 0x0f00) shr 4, (b and 0x0f00) shr 4),
+            Color((r and 0x00f0), (g and 0x00f0), (b and 0x00f0)),
+            Color((r and 0x000f) shl 4, (g and 0x000f) shl 4, (b and 0x000f) shl 4),
+        )
+    }
+
+    var repaint: () -> Unit = {}
+
+    var vector: UShort = 0x0u; private set
+
+    private var width: UShort = 0x0u // TODO: Actually consider this width
+    private var height: UShort = 0x0u // TODO: Actually consider this height
 
     private var auto: UByte = 0x0u
     private var x: UShort = 0x0u
     private var y: UShort = 0x0u
     private var address: UShort = 0x0u
-    private var pixel: UByte = 0x0u
-    private var sprite: UByte = 0x0u
 
     fun read(port: UByte): UByte {
         return when (port) {
-            PIXEL -> pixel
-            SPRITE -> sprite
             AUTO -> auto
-            else -> 0x0u
+            else -> error("read port=${port.toString(16)}")
         }
     }
 
@@ -70,29 +78,28 @@ class Screen(val varvara: Varvara) {
             X -> x
             Y -> y
             ADDRESS -> address
-            else -> 0x0u
+            else -> error("readShort port=${port.toString(16)}")
         }
     }
 
     fun write(port: UByte, value: UByte) {
         when (port) {
             AUTO -> auto = value
-            PIXEL -> {
-//                pixel = value
-                drawPixel(value)
-            }
-            SPRITE -> {
-//                sprite = value
-                drawSprite(value)
-            }
+            PIXEL -> drawPixel(value) // TODO: Should we also write/read the value to a variable
+            SPRITE -> drawSprite(value) // TODO: Should we also write/read the value to a variable
+            else -> error("write port=${port.toString(16)}, value=${value.toString(16)}")
         }
     }
 
     fun writeShort(port: UByte, value: UShort) {
         when (port) {
+            VECTOR -> vector = value
+            WIDTH -> width = value
+            HEIGHT -> height = value
             X -> x = value
             Y -> y = value
             ADDRESS -> address = value
+            else -> error("writeShort port=${port.toString(16)}, value=${value.toString(16)}")
         }
     }
 
@@ -125,6 +132,7 @@ class Screen(val varvara: Varvara) {
         if (autoY) {
             this.y = (this.y + 1u).toUShort()
         }
+        repaint()
     }
 
     private fun drawSprite(params: UByte) {
@@ -173,7 +181,7 @@ class Screen(val varvara: Varvara) {
                     }
                     px = blendingModes[px][c]
                     if (drawZero || px > 0) {
-                        val color = if (!fg || px > 0) colors[px] else Color.white // TODO
+                        val color = if (!fg || px > 0) colors[px] else TRANSPARENT
                         layer.setRGB(x, y, color.rgb)
                     }
                     x += dx
@@ -201,5 +209,6 @@ class Screen(val varvara: Varvara) {
         if (autoY) {
             this.y = (this.y + (dy * 8).toUShort()).toUShort()
         }
+        repaint()
     }
 }
