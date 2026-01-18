@@ -54,7 +54,7 @@ val OpCode.shortFlag: Boolean get() = test(0x20u) && test(0x9fu)
 val OpCode.returnFlag: Boolean get() = test(0x40u) && test(0x9fu)
 val OpCode.keepFlag: Boolean get() = test(0x80u) && test(0x1fu)
 
-internal fun UByte.test(mask: UByte) = (this and mask) > UByte_0
+fun UByte.test(mask: UByte) = (this and mask) > UByte_0
 fun UShort(lo: UByte, hi: UByte) = ((hi.toUInt() shl 8) + lo).toUShort()
 
 fun OpCode.str() = "${

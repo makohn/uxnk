@@ -15,31 +15,55 @@ const val DEV_TIME: UByte = 0xc0u
 class Varvara : Device {
     private val machine = UxnMachine(this)
     private val console = Console()
+    val screen = Screen()
 
     override fun out(port: UByte, value: UByte) {
         val device = port and 0xf0u
         val p = port and 0xfu
         when (device) {
-            DEV_SYSTEM -> TODO()
-            DEV_CONSOLE -> console.output(p, value)
-            DEV_SCREEN -> TODO()
-            DEV_CONTROLLER -> TODO()
-            DEV_MOUSE -> TODO()
-            DEV_FILE_A -> TODO()
-            DEV_FILE_B -> TODO()
-            DEV_TIME -> TODO()
+            DEV_SYSTEM -> Unit
+            DEV_CONSOLE -> console.write(p, value)
+            DEV_SCREEN -> screen.write(p, value)
+            DEV_CONTROLLER -> Unit
+            DEV_MOUSE -> Unit
+            DEV_FILE_A -> Unit
+            DEV_FILE_B -> Unit
+            DEV_TIME -> Unit
         }
     }
 
     override fun outShort(port: UByte, value: UShort) {
-        TODO("Not yet implemented")
+        val device = port and 0xf0u
+        val p = port and 0xfu
+        when (device) {
+            DEV_SYSTEM -> Unit
+            DEV_CONSOLE -> console.writeShort(p, value)
+            DEV_SCREEN -> screen.writeShort(p, value)
+            DEV_CONTROLLER -> Unit
+            DEV_MOUSE -> Unit
+            DEV_FILE_A -> Unit
+            DEV_FILE_B -> Unit
+            DEV_TIME -> Unit
+        }
     }
 
     override fun inp(port: UByte): UByte {
-        TODO("Not yet implemented")
+        return 0x0u
     }
 
     override fun inpShort(port: UByte): UShort {
-        TODO("Not yet implemented")
+        val device = port and 0xf0u
+        val p = port and 0xfu
+        return when (device) {
+//            DEV_SYSTEM -> Unit
+//            DEV_CONSOLE -> console.writeShort(p, value)
+            DEV_SCREEN -> screen.readShort(p)
+//            DEV_CONTROLLER -> Unit
+//            DEV_MOUSE -> Unit
+//            DEV_FILE_A -> Unit
+//            DEV_FILE_B -> Unit
+//            DEV_TIME -> Unit
+            else -> 0x0u
+        }
     }
 }

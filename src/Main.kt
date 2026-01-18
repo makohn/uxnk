@@ -3,15 +3,21 @@ import java.io.File
 
 class Console : Device {
 
-    val mem = UByteArray(0x100)
-    var consoleVector: UShort = 0u; private set
+    companion object {
+        const val WRITE: UByte = 0x8u
+        const val ERROR: UByte = 0x9u
+    }
+
+    val mem = UByteArray(16)
+    val consoleVector: UShort
+        get() = UShort(mem[0x1u], mem[0x0u])
 
     override fun out(port: UByte, value: UByte) {
-        mem[port] = value
-        when (port) {
-            0x11u.toUByte() -> consoleVector = UShort(value, mem[0x10u])
-            0x18u.toUByte() -> print(value.toInt().toChar())
-            0x19u.toUByte() -> System.err.print(value.toInt().toChar())
+        val index = port and 0xfu
+        mem[index] = value
+        when (index) {
+            WRITE -> print(value.toInt().toChar())
+            ERROR -> System.err.print(value.toInt().toChar())
         }
     }
 
@@ -22,18 +28,20 @@ class Console : Device {
     }
 
     override fun inp(port: UByte): UByte {
-        return mem[port]
+        val index = port and 0xfu
+        return mem[index]
     }
 
     override fun inpShort(port: UByte): UShort {
-        val hi = mem[port]
-        val lo = mem[port - 1u]
+        val index = port and 0xfu
+        val hi = mem[index]
+        val lo = mem[index - 1u]
         return UShort(lo, hi)
     }
 
     fun consoleInput(uxn: UxnMachine, c: UByte, type: UByte) {
-        mem[0x12u] = c
-        mem[0x17u] = type
+        mem[0x2u] = c
+        mem[0x7u] = type
         if (consoleVector > 0u) {
             uxn.eval(consoleVector)
         }
@@ -42,7 +50,7 @@ class Console : Device {
 
 fun main() {
     val console = Console()
-    val rom = File("rom/sierpinski.rom").readBytes().toUByteArray()
+    val rom = File("rom/pig.rom").readBytes().toUByteArray()
     val uxn = UxnMachine(console)
     uxn.loadRom(rom)
     if (uxn.eval() && console.consoleVector > 0u) {
