@@ -1,6 +1,7 @@
 import uxn.UxnMachine
 import varvara.Screen
 import varvara.Varvara
+import java.awt.Color
 import java.awt.Dimension
 import java.awt.Graphics
 import java.io.File
@@ -25,8 +26,10 @@ class ScreenPanel(private val screen: Screen) : JPanel() {
 fun main() {
     val varvara = Varvara()
     val uxn = UxnMachine(varvara)
+    varvara.machine = uxn
     val screenPanel = ScreenPanel(varvara.screen)
-    val rom = File("rom/pxl.rom").readBytes().toUByteArray()
+    val rom = File("rom/label.rom").readBytes().toUByteArray()
+    uxn.loadRom(rom)
 
     val timer = Timer(1000 / 60) {
         screenPanel.repaint()
@@ -34,12 +37,12 @@ fun main() {
     timer.start()
 
     thread {
-        uxn.loadRom(rom)
         uxn.eval()
     }
 
     val frame = JFrame("UXN")
 
+    screenPanel.background = Color.WHITE
     frame.add(screenPanel)
     frame.pack()
     frame.defaultCloseOperation = JFrame.EXIT_ON_CLOSE

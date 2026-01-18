@@ -13,9 +13,9 @@ const val DEV_FILE_B: UByte = 0xb0u
 const val DEV_TIME: UByte = 0xc0u
 
 class Varvara : Device {
-    private val machine = UxnMachine(this)
+    lateinit var machine: UxnMachine
     private val console = Console()
-    val screen = Screen()
+    val screen = Screen(this)
 
     override fun out(port: UByte, value: UByte) {
         val device = port and 0xf0u
@@ -48,7 +48,19 @@ class Varvara : Device {
     }
 
     override fun inp(port: UByte): UByte {
-        return 0x0u
+        val device = port and 0xf0u
+        val p = port and 0xfu
+        return when (device) {
+//            DEV_SYSTEM -> Unit
+//            DEV_CONSOLE -> console.writeShort(p, value)
+            DEV_SCREEN -> screen.read(p)
+//            DEV_CONTROLLER -> Unit
+//            DEV_MOUSE -> Unit
+//            DEV_FILE_A -> Unit
+//            DEV_FILE_B -> Unit
+//            DEV_TIME -> Unit
+            else -> 0x0u
+        }
     }
 
     override fun inpShort(port: UByte): UShort {
