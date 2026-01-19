@@ -52,8 +52,6 @@ class Screen(val varvara: Varvara) {
         )
     }
 
-    var repaint: () -> Unit = {}
-
     var vector: UShort = 0x0u; private set
 
     private var width: UShort = 0x0u // TODO: Actually consider this width
@@ -132,7 +130,6 @@ class Screen(val varvara: Varvara) {
         if (autoY) {
             this.y = (this.y + 1u).toUShort()
         }
-        repaint()
     }
 
     private fun drawSprite(params: UByte) {
@@ -209,6 +206,5 @@ class Screen(val varvara: Varvara) {
         if (autoY) {
             this.y = (this.y + (dy * 8).toUShort()).toUShort()
         }
-        repaint()
     }
 }

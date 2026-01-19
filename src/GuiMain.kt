@@ -33,10 +33,9 @@ fun main() {
     val rom = File("rom/catclock.rom").readBytes().toUByteArray()
     uxn.loadRom(rom)
 
-    varvara.screen.repaint = { screenPanel.repaint() }
-
     val timer = Timer(1000 / 60) {
         uxn.eval(varvara.screen.vector)
+        screenPanel.repaint()
     }
 
     thread {
