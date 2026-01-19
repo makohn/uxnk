@@ -14,27 +14,53 @@ class UxnMachineTest {
     private class State(
         val opCode: OpCode,
         val wst: UByteArray?,
+        val memory: UByteArray?,
+        val address: UShort
     )
 
     private class Expectation(
-        val wst: UByteArray?
+        val wst: UByteArray?,
+        val rst: UByteArray?,
+        val pc: UShort?
     )
 
     private class Builder(val opCode: OpCode? = null) {
         var wst: UByteArray? = null
+        var rst: UByteArray? = null
+        var pc: UShort? = null
+        var address: UShort? = null
+        var memory: UByteArray? = null
 
         fun wst(wst: UByteArray): Builder {
             this.wst = wst
             return this
         }
 
-        fun toState() = State(opCode!!, wst)
-        fun toExpectation() = Expectation(wst)
+        fun rst(vararg rst: UByte): Builder {
+            this.rst = rst
+            return this
+        }
+
+        fun pc(pc: UShort): Builder {
+            this.pc = pc
+            return this
+        }
+
+        fun memory(address: UShort, vararg memory: UByte): Builder {
+            this.address = address
+            this.memory = memory
+            return this
+        }
+
+        fun toState() = State(opCode!!, wst, memory, address ?: 0u)
+        fun toExpectation() = Expectation(wst, rst, pc)
     }
 
     private fun UByte.wst(vararg wst: UByte) = Builder(this).wst(wst)
+    private fun UByte.memory(address: UShort, vararg memory: UByte) = Builder(this).memory(address, *memory)
 
     private fun wst(vararg wst: UByte) = Builder().wst(wst)
+    private fun pc(pc: UShort) = Builder().pc(pc)
 
     private data class Test(val state: State, val expectation: Expectation)
 
@@ -43,6 +69,26 @@ class UxnMachineTest {
     }
 
     private val tests = listOf(
+        // JCI
+        JCI.wst(0x0_u).memory(0x101_u, 0x2_u, 0x2_u) leadsTo pc(0x103_u),
+        JCI.wst(0x1_u).memory(0x101_u, 0x7_u, 0x5_u) leadsTo pc(0x808_u),
+        // JMI
+        JMI.memory(0x101_u, 0x7_u, 0x5_u) leadsTo pc(0x808u),
+        // JSI
+        JSI.memory(0x101_u, 0x7_u, 0x5_u) leadsTo pc(0x808_u).rst(0x1_u, 0x3_u),
+        // LIT
+        LIT.memory(0x101_u, 0x1_u) leadsTo wst(0x1_u).pc(0x102_u),
+        LIT.s.memory(0x101_u, 0x1_u, 0x2_u) leadsTo wst(0x1_u, 0x2_u).pc(0x103_u),
+        // JMP
+        JMP.wst(0x1_u) leadsTo pc(0x102_u),
+        JMP.k.wst(0x1_u) leadsTo wst(0x1_u).pc(0x102_u),
+        JMP.s.wst(0x3_u, 0x4_u) leadsTo pc(0x304_u),
+        JMP.s.k.wst(0x3_u, 0x4_u) leadsTo wst(0x3_u, 0x4_u).pc(0x304_u),
+        // JCN
+        JCN.wst(0x1_u, 0x4_u) leadsTo pc(0x105_u),
+        JCN.k.wst(0x1_u, 0x4_u) leadsTo wst(0x1_u, 0x4_u).pc(0x105_u),
+        JCN.s.wst(0x1_u, 0x2_u, 0x7_u) leadsTo pc(0x207_u),
+        JCN.s.k.wst(0x1_u, 0x2_u, 0x7_u) leadsTo wst(0x1_u, 0x2_u, 0x7_u).pc(0x207_u),
         // INC
         INC.wst(0x1_u) leadsTo wst(0x2_u),
         INC.s.wst(0x00_u, 0x01_u) leadsTo wst(0x00_u, 0x02_u),
@@ -143,6 +189,8 @@ class UxnMachineTest {
         // LDR
         // STR
         // LDA
+        LDA.wst(0x1_u, 0x9_u).memory(0x109_u, 0x42_u) leadsTo wst(0x42_u),
+        LDA.s.wst(0x1_u, 0x9_u).memory(0x109_u, 0x42_u, 0x69_u) leadsTo wst(0x42_u, 0x69_u),
         // STA
         // DEI
         // ADD
@@ -179,18 +227,34 @@ class UxnMachineTest {
             state.wst?.forEach { byte ->
                 machine.workingStack.push(byte)
             }
+            val address = state.address.toInt()
+            state.memory?.forEachIndexed { idx, byte ->
+                machine.memory[address + idx] = byte
+            }
+
             machine.loadRom(UByteArray(1) { state.opCode })
             machine.step()
 
-            for (expected in expectation.wst!!.reversed()) {
+            expectation.wst?.reversed()?.forEach { expected ->
                 val actual = machine.workingStack.pop()
                 assertEquals(
                     expected, actual, """
                     expected: <${expected.toString(16)}> but was: <${actual.toString(16)}>
-                    WS: ${machine.workingStack}
-                    RS: ${machine.returnStack}
                 """.trimIndent()
                 )
+            }
+            expectation.rst?.reversed()?.forEach { expected ->
+                val actual = machine.returnStack.pop()
+                assertEquals(
+                    expected, actual, """
+                    expected: <${expected.toString(16)}> but was: <${actual.toString(16)}>
+                """.trimIndent()
+                )
+            }
+            expectation.pc?.let { pc ->
+                assertEquals(pc, machine.pc, """
+                    expected: <${pc.toString(16)}> but was: <${machine.pc.toString(16)}>
+                """.trimIndent())
             }
         }
     }

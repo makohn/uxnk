@@ -12,7 +12,7 @@ class UxnMachine(val device: Device) {
     val memory = UByteArray(65536)
     val workingStack = UxnStack()
     val returnStack = UxnStack()
-    private var pc: UShort = 0x100u
+    var pc: UShort = 0x100u; private set
 
     enum class MachineState {
         Running, Stopped
@@ -153,6 +153,9 @@ class UxnMachine(val device: Device) {
                         val address = stack.popShort()
                         stack.endPop(keep)
                         stack.push(memory[address])
+                        if (short) {
+                            stack.push(memory[address + 1u])
+                        }
                     }
 
                     STA -> {
