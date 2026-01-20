@@ -14,6 +14,7 @@ class UxnMachineTest {
     private class State(
         val opCode: OpCode,
         val wst: UByteArray?,
+        val rst: UByteArray?,
         val memory: UByteArray?,
         val address: UShort
     )
@@ -21,6 +22,8 @@ class UxnMachineTest {
     private class Expectation(
         val wst: UByteArray?,
         val rst: UByteArray?,
+        val memory: UByteArray?,
+        val address: UShort,
         val pc: UShort?
     )
 
@@ -31,7 +34,7 @@ class UxnMachineTest {
         var address: UShort? = null
         var memory: UByteArray? = null
 
-        fun wst(wst: UByteArray): Builder {
+        fun wst(vararg wst: UByte): Builder {
             this.wst = wst
             return this
         }
@@ -52,15 +55,18 @@ class UxnMachineTest {
             return this
         }
 
-        fun toState() = State(opCode!!, wst, memory, address ?: 0u)
-        fun toExpectation() = Expectation(wst, rst, pc)
+        fun toState() = State(opCode!!, wst, rst, memory, address ?: 0u)
+        fun toExpectation() = Expectation(wst, rst, memory, address ?: 0u, pc)
     }
 
-    private fun UByte.wst(vararg wst: UByte) = Builder(this).wst(wst)
+    private fun UByte.rst(vararg rst: UByte) = Builder(this).rst(*rst)
+    private fun UByte.wst(vararg wst: UByte) = Builder(this).wst(*wst)
     private fun UByte.memory(address: UShort, vararg memory: UByte) = Builder(this).memory(address, *memory)
 
-    private fun wst(vararg wst: UByte) = Builder().wst(wst)
+    private fun wst(vararg wst: UByte) = Builder().wst(*wst)
+    private fun rst(vararg rst: UByte) = Builder().rst(*rst)
     private fun pc(pc: UShort) = Builder().pc(pc)
+    private fun memory(address: UShort, vararg memory: UByte) = Builder().memory(address, *memory)
 
     private data class Test(val state: State, val expectation: Expectation)
 
@@ -79,16 +85,6 @@ class UxnMachineTest {
         // LIT
         LIT.memory(0x101_u, 0x1_u) leadsTo wst(0x1_u).pc(0x102_u),
         LIT.s.memory(0x101_u, 0x1_u, 0x2_u) leadsTo wst(0x1_u, 0x2_u).pc(0x103_u),
-        // JMP
-        JMP.wst(0x1_u) leadsTo pc(0x102_u),
-        JMP.k.wst(0x1_u) leadsTo wst(0x1_u).pc(0x102_u),
-        JMP.s.wst(0x3_u, 0x4_u) leadsTo pc(0x304_u),
-        JMP.s.k.wst(0x3_u, 0x4_u) leadsTo wst(0x3_u, 0x4_u).pc(0x304_u),
-        // JCN
-        JCN.wst(0x1_u, 0x4_u) leadsTo pc(0x105_u),
-        JCN.k.wst(0x1_u, 0x4_u) leadsTo wst(0x1_u, 0x4_u).pc(0x105_u),
-        JCN.s.wst(0x1_u, 0x2_u, 0x7_u) leadsTo pc(0x207_u),
-        JCN.s.k.wst(0x1_u, 0x2_u, 0x7_u) leadsTo wst(0x1_u, 0x2_u, 0x7_u).pc(0x207_u),
         // INC
         INC.wst(0x1_u) leadsTo wst(0x2_u),
         INC.s.wst(0x00_u, 0x01_u) leadsTo wst(0x00_u, 0x02_u),
@@ -181,17 +177,41 @@ class UxnMachineTest {
         LTH.s.wst(0x00_u, 0x01_u, 0x00_u, 0x00_u) leadsTo wst(0x00_u),
         LTH.s.k.wst(0x00_u, 0x01_u, 0x00_u, 0x00_u) leadsTo wst(0x00_u, 0x01_u, 0x00_u, 0x00_u, 0x00_u),
         // JMP
+        JMP.wst(0x1_u) leadsTo pc(0x102_u),
+        JMP.k.wst(0x1_u) leadsTo wst(0x1_u).pc(0x102_u),
+        JMP.s.wst(0x3_u, 0x4_u) leadsTo pc(0x304_u),
+        JMP.s.k.wst(0x3_u, 0x4_u) leadsTo wst(0x3_u, 0x4_u).pc(0x304_u),
         // JCN
+        JCN.wst(0x1_u, 0x4_u) leadsTo pc(0x105_u),
+        JCN.k.wst(0x1_u, 0x4_u) leadsTo wst(0x1_u, 0x4_u).pc(0x105_u),
+        JCN.s.wst(0x1_u, 0x2_u, 0x7_u) leadsTo pc(0x207_u),
+        JCN.s.k.wst(0x1_u, 0x2_u, 0x7_u) leadsTo wst(0x1_u, 0x2_u, 0x7_u).pc(0x207_u),
         // JSR
+        JSR.wst(0x4_u) leadsTo pc(0x105_u).rst(0x1_u, 0x1_u),
+        JSR.k.wst(0x4_u) leadsTo wst(0x4_u).pc(0x105_u).rst(0x1_u, 0x1_u),
+        JSR.s.wst(0x2_u, 0x7_u) leadsTo pc(0x207_u).rst(0x1_u, 0x1_u),
+        JSR.s.k.wst(0x2_u, 0x7_u) leadsTo wst(0x2_u, 0x7_u).pc(0x207_u).rst(0x1_u, 0x1_u),
         // STH
+        STH.wst(0x7_u) leadsTo rst(0x7_u),
+        STH.r.rst(0x7_u) leadsTo wst(0x7_u),
+        STH.k.wst(0x7_u) leadsTo wst(0x7_u).rst(0x7_u),
+        STH.s.wst(0x7_u, 0x8_u) leadsTo rst(0x7_u, 0x8_u),
+        STH.s.r.rst(0x7_u, 0x8_u) leadsTo wst(0x7_u, 0x8_u),
+        STH.s.k.wst(0x7_u, 0x8_u) leadsTo wst(0x7_u, 0x8_u).rst(0x7_u, 0x8_u),
         // LDZ
+        LDZ.memory(0x71_u, 0x42_u).wst(0x71_u) leadsTo wst(0x42_u),
+        LDZ.s.memory(0x71_u, 0x42_u, 0x69_u).wst(0x71_u) leadsTo wst(0x42_u, 0x69_u),
         // STZ
+        STZ.wst(0x42_u, 0x71_u) leadsTo memory(0x71_u, 0x42_u),
+        STZ.s.wst(0x42_u, 0x69_u, 0x71_u) leadsTo memory(0x71_u, 0x42_u, 0x69_u),
         // LDR
         // STR
         // LDA
         LDA.wst(0x1_u, 0x9_u).memory(0x109_u, 0x42_u) leadsTo wst(0x42_u),
         LDA.s.wst(0x1_u, 0x9_u).memory(0x109_u, 0x42_u, 0x69_u) leadsTo wst(0x42_u, 0x69_u),
         // STA
+        STA.wst(0x42_u, 0x1_u, 0x9_u) leadsTo memory(0x109_u, 0x42_u),
+        STA.s.wst(0x42_u, 0x69_u, 0x1_u, 0x9_u) leadsTo memory(0x109_u, 0x42_u, 0x69_u),
         // DEI
         // ADD
         ADD.wst(0x1a_u, 0x2e_u) leadsTo wst(0x48_u),
@@ -227,6 +247,9 @@ class UxnMachineTest {
             state.wst?.forEach { byte ->
                 machine.workingStack.push(byte)
             }
+            state.rst?.forEach { byte ->
+                machine.returnStack.push(byte)
+            }
             val address = state.address.toInt()
             state.memory?.forEachIndexed { idx, byte ->
                 machine.memory[address + idx] = byte
@@ -245,6 +268,14 @@ class UxnMachineTest {
             }
             expectation.rst?.reversed()?.forEach { expected ->
                 val actual = machine.returnStack.pop()
+                assertEquals(
+                    expected, actual, """
+                    expected: <${expected.toString(16)}> but was: <${actual.toString(16)}>
+                """.trimIndent()
+                )
+            }
+            expectation.memory?.forEachIndexed { idx, expected ->
+                val actual = machine.memory[expectation.address.toInt() + idx]
                 assertEquals(
                     expected, actual, """
                     expected: <${expected.toString(16)}> but was: <${actual.toString(16)}>
