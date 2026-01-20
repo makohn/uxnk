@@ -4,6 +4,8 @@ import varvara.Varvara
 import java.awt.Color
 import java.awt.Dimension
 import java.awt.Graphics
+import java.awt.event.KeyEvent
+import java.awt.event.KeyListener
 import java.io.File
 import javax.swing.JFrame
 import javax.swing.JPanel
@@ -30,7 +32,7 @@ fun main() {
     val uxn = UxnMachine(varvara)
     varvara.machine = uxn
     val screenPanel = ScreenPanel(varvara.screen)
-    val rom = File("rom/catclock.rom").readBytes().toUByteArray()
+    val rom = File("rom/terminal.rom").readBytes().toUByteArray()
     uxn.loadRom(rom)
 
     val timer = Timer(1000 / 60) {
@@ -44,8 +46,23 @@ fun main() {
     }
 
     val frame = JFrame("UXN")
+    frame.addKeyListener(object : KeyListener {
+        override fun keyTyped(e: KeyEvent) {
+            varvara.controller.setKey(e.keyChar.code)
+            uxn.eval(varvara.controller.vector)
+            varvara.controller.setKey(0)
+        }
 
-    screenPanel.background = Color.WHITE
+        override fun keyPressed(e: KeyEvent) {
+
+        }
+
+        override fun keyReleased(e: KeyEvent) {
+
+        }
+    })
+
+    screenPanel.background = Color.BLACK // TODO: Make dynamic
     frame.add(screenPanel)
     frame.pack()
     frame.defaultCloseOperation = JFrame.EXIT_ON_CLOSE

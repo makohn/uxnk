@@ -21,6 +21,7 @@ class Varvara : Device {
     private val dateTime = DateTime()
     val system = System()
     val screen = Screen(this)
+    val controller = Controller()
 
     override fun out(port: UByte, value: UByte) {
         val device = port and 0xf0u
@@ -29,7 +30,7 @@ class Varvara : Device {
             SYSTEM -> system.write(p, value)
             CONSOLE -> console.write(p, value)
             SCREEN -> screen.write(p, value)
-            CONTROLLER -> Unit
+            CONTROLLER -> controller.write(p, value)
             MOUSE -> Unit
             FILE_A -> Unit
             FILE_B -> Unit
@@ -44,7 +45,7 @@ class Varvara : Device {
             SYSTEM -> system.writeShort(p, value)
             CONSOLE -> console.writeShort(p, value)
             SCREEN -> screen.writeShort(p, value)
-            CONTROLLER -> Unit
+            CONTROLLER -> controller.writeShort(p, value)
             MOUSE -> Unit
             FILE_A -> Unit
             FILE_B -> Unit
@@ -59,7 +60,7 @@ class Varvara : Device {
             SYSTEM -> system.read(p)
 //            CONSOLE -> console.writeShort(p, value)
             SCREEN -> screen.read(p)
-//            CONTROLLER -> Unit
+            CONTROLLER -> controller.read(p)
 //            MOUSE -> Unit
 //            FILE_A -> Unit
 //            FILE_B -> Unit
@@ -75,7 +76,7 @@ class Varvara : Device {
             SYSTEM -> system.readShort(p)
 //            CONSOLE -> console.writeShort(p, value)
             SCREEN -> screen.readShort(p)
-//            CONTROLLER -> Unit
+            CONTROLLER -> controller.readShort(p)
 //            MOUSE -> Unit
 //            FILE_A -> Unit
 //            FILE_B -> Unit
