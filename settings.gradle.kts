@@ -1,4 +1,4 @@
-rootProject.name = "kuxn"
+rootProject.name = "uxnk"
 
 dependencyResolutionManagement {
     repositories {
