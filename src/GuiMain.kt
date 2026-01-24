@@ -1,4 +1,3 @@
-import uxn.UxnMachine
 import varvara.Screen
 import varvara.Varvara
 import java.awt.Color
@@ -29,8 +28,7 @@ class ScreenPanel(private val screen: Screen) : JPanel() {
 
 fun main() {
     val varvara = Varvara()
-    val uxn = UxnMachine(varvara)
-    varvara.machine = uxn
+    val uxn = varvara.machine
     val screenPanel = ScreenPanel(varvara.screen)
     val rom = File("rom/terminal.rom").readBytes().toUByteArray()
     uxn.loadRom(rom)

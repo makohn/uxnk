@@ -1,8 +1,8 @@
 package uxn
 
-import Console
 import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.TestFactory
+import util.*
 import kotlin.test.assertEquals
 
 class UxnMachineTest {
@@ -182,7 +182,12 @@ class UxnMachineTest {
     private val UByte.s: UByte get() = (this + 0x20u).toUByte()
 
     private class State(val opCode: OpCode, wst: UByteArray?, rst: UByteArray?, memory: UByteArray?, address: UShort) {
-        val machine = UxnMachine(Console())
+        val machine = UxnMachine(object : UxnDevice {
+            override fun output(port: UByte, value: UByte) = Unit
+            override fun outputShort(port: UByte, value: UShort) = Unit
+            override fun input(port: UByte) = UByte_0
+            override fun inputShort(port: UByte) = UShort_0
+        })
 
         init {
             val address = address.toInt()

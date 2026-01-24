@@ -1,8 +1,9 @@
-import uxn.*
 import util.*
+import uxn.UxnDevice
+import uxn.UxnMachine
 import java.io.File
 
-class Console : Device {
+class Console : UxnDevice {
 
     companion object {
         const val WRITE: UByte = 0x8u
@@ -13,7 +14,7 @@ class Console : Device {
     val consoleVector: UShort
         get() = UShort(mem[0x0u], mem[0x1u])
 
-    override fun out(port: UByte, value: UByte) {
+    override fun output(port: UByte, value: UByte) {
         val index = port and 0xfu
         mem[index] = value
         when (index) {
@@ -22,17 +23,17 @@ class Console : Device {
         }
     }
 
-    override fun outShort(port: UByte, value: UShort) {
-        out(port, value.hi)
-        out((port + 1u).toUByte(), value.lo)
+    override fun outputShort(port: UByte, value: UShort) {
+        output(port, value.hi)
+        output((port + 1u).toUByte(), value.lo)
     }
 
-    override fun inp(port: UByte): UByte {
+    override fun input(port: UByte): UByte {
         val index = port and 0xfu
         return mem[index]
     }
 
-    override fun inpShort(port: UByte): UShort {
+    override fun inputShort(port: UByte): UShort {
         val index = port and 0xfu
         val hi = mem[index]
         val lo = mem[index - 1u]

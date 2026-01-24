@@ -2,14 +2,7 @@ package uxn
 
 import util.*
 
-interface Device {
-    fun out(port: UByte, value: UByte)
-    fun outShort(port: UByte, value: UShort)
-    fun inp(port: UByte): UByte
-    fun inpShort(port: UByte): UShort
-}
-
-class UxnMachine(val device: Device) {
+class UxnMachine(val device: UxnDevice) {
 
     val memory = UByteArray(65536)
     val workingStack = UxnStack()
@@ -381,9 +374,9 @@ class UxnMachine(val device: Device) {
                         val port = stack.pop()
                         stack.endPop(keep)
                         if (short) {
-                            stack.pushShort(device.inpShort(port))
+                            stack.pushShort(device.inputShort(port))
                         } else {
-                            stack.push(device.inp(port))
+                            stack.push(device.input(port))
                         }
                     }
 
@@ -393,10 +386,10 @@ class UxnMachine(val device: Device) {
                         val port = stack.pop()
                         if (short) {
                             val output = stack.popShort()
-                            device.outShort(port, output)
+                            device.outputShort(port, output)
                         } else {
                             val output = stack.pop()
-                            device.out(port, output)
+                            device.output(port, output)
                         }
                         stack.endPop(keep)
                     }

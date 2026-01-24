@@ -1,9 +1,9 @@
 package varvara
 
-import uxn.Device
+import uxn.UxnDevice
 import uxn.UxnMachine
 
-class Varvara : Device {
+class Varvara : UxnDevice {
 
     companion object {
         const val SYSTEM: UByte = 0x00u
@@ -16,14 +16,14 @@ class Varvara : Device {
         const val TIME: UByte = 0xc0u
     }
 
-    lateinit var machine: UxnMachine
+    val machine = UxnMachine(this)
     private val console = Console()
     private val dateTime = DateTime()
     val system = System()
     val screen = Screen(this)
     val controller = Controller()
 
-    override fun out(port: UByte, value: UByte) {
+    override fun output(port: UByte, value: UByte) {
         val device = port and 0xf0u
         val p = port and 0xfu
         when (device) {
@@ -38,7 +38,7 @@ class Varvara : Device {
         }
     }
 
-    override fun outShort(port: UByte, value: UShort) {
+    override fun outputShort(port: UByte, value: UShort) {
         val device = port and 0xf0u
         val p = port and 0xfu
         when (device) {
@@ -53,7 +53,7 @@ class Varvara : Device {
         }
     }
 
-    override fun inp(port: UByte): UByte {
+    override fun input(port: UByte): UByte {
         val device = port and 0xf0u
         val p = port and 0xfu
         return when (device) {
@@ -69,7 +69,7 @@ class Varvara : Device {
         }
     }
 
-    override fun inpShort(port: UByte): UShort {
+    override fun inputShort(port: UByte): UShort {
         val device = port and 0xf0u
         val p = port and 0xfu
         return when (device) {
