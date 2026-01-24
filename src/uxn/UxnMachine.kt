@@ -37,13 +37,14 @@ class UxnMachine(val device: Device) {
     }
 
     fun step(): MachineState {
-        val op = memory[pc++]
-//        println("Op: ${op.str()}")
-        when (op) {
+        when (val op = memory[pc++]) {
+
+            // Break
             BRK -> {
                 return MachineState.Stopped
             }
 
+            // Jump Conditional Immediate
             JCI -> {
                 pcAdd(2u)
                 if (workingStack.pop() != UByte_0) {
@@ -51,11 +52,13 @@ class UxnMachine(val device: Device) {
                 }
             }
 
+            // Jump Immediate
             JMI -> {
                 pcAdd(2u)
                 pcAdd(UShort(memory[pc - 2u], memory[pc - 1u]))
             }
 
+            // Jump Stash Return Immediate
             JSI -> {
                 pcAdd(2u)
                 returnStack.pushShort(pc)
@@ -69,30 +72,7 @@ class UxnMachine(val device: Device) {
 
                 when (op.base) {
 
-                    DEO -> {
-                        stack.beginPop()
-                        val port = stack.pop()
-                        if (short) {
-                            val output = stack.popShort()
-                            device.outShort(port, output)
-                        } else {
-                            val output = stack.pop()
-                            device.out(port, output)
-                        }
-                        stack.endPop(keep)
-                    }
-
-                    DEI -> {
-                        stack.beginPop()
-                        val port = stack.pop()
-                        stack.endPop(keep)
-                        if (short) {
-                            stack.pushShort(device.inpShort(port))
-                        } else {
-                            stack.push(device.inp(port))
-                        }
-                    }
-
+                    // Literal
                     LIT -> {
                         stack.push(memory[pc++])
                         if (short) {
@@ -100,96 +80,33 @@ class UxnMachine(val device: Device) {
                         }
                     }
 
-                    JMP -> {
-                        stack.beginPop()
-                        if (short) {
-                            pc = stack.popShort()
-                        } else {
-                            pcAdd(stack.pop().toByte().toUShort())
-                        }
-                        stack.endPop(keep)
-                    }
-
-                    LDZ -> {
-                        stack.beginPop()
-                        val address = stack.pop()
-                        stack.endPop(keep)
-                        stack.push(memory[address])
-                        if (short) {
-                            stack.push(memory[address + 1u])
-                        }
-                    }
-
-                    STZ -> {
-                        stack.beginPop()
-                        val address = stack.pop()
-                        if (short) {
-                            memory[address + 1u] = stack.pop()
-                        }
-                        memory[address] = stack.pop()
-                        stack.endPop(keep)
-                    }
-
-                    LDR -> {
-                        stack.beginPop()
-                        val offset = stack.pop().toByte().toUShort()
-                        stack.endPop(keep)
-                        stack.push(memory[pc + offset])
-                        if (short) {
-                            stack.push(memory[pc + offset + 1u])
-                        }
-                    }
-
-                    STR -> {
-                        stack.beginPop()
-                        val offset = stack.pop().toByte().toUShort()
-                        if (short) {
-                            memory[pc + offset + 1u] = stack.pop()
-                        }
-                        memory[pc + offset] = stack.pop()
-                        stack.endPop(keep)
-                    }
-
-                    LDA -> {
-                        stack.beginPop()
-                        val address = stack.popShort()
-                        stack.endPop(keep)
-                        stack.push(memory[address])
-                        if (short) {
-                            stack.push(memory[address + 1u])
-                        }
-                    }
-
-                    STA -> {
-                        stack.beginPop()
-                        val address = stack.popShort()
-                        if (short) {
-                            memory[address + 1u] = stack.pop()
-                        }
-                        memory[address] = stack.pop()
-                        stack.endPop(keep)
-                    }
-
-                    OVR -> {
+                    // Increment
+                    INC -> {
                         if (short) {
                             stack.beginPop()
-                            val a = stack.popShort()
-                            val b = stack.popShort()
+                            val v = stack.popShort()
                             stack.endPop(keep)
-                            stack.pushShort(b)
-                            stack.pushShort(a)
-                            stack.pushShort(b)
+                            stack.pushShort((v + 1u).toUShort())
                         } else {
                             stack.beginPop()
-                            val a = stack.pop()
-                            val b = stack.pop()
+                            val v = stack.pop()
                             stack.endPop(keep)
-                            stack.push(b)
-                            stack.push(a)
-                            stack.push(b)
+                            stack.push((v + 1u).toUByte())
                         }
                     }
 
+                    // Pop
+                    POP -> {
+                        stack.beginPop()
+                        if (short) {
+                            stack.popShort()
+                        } else {
+                            stack.pop()
+                        }
+                        stack.endPop(keep)
+                    }
+
+                    // Nip
                     NIP -> {
                         if (short) {
                             stack.beginPop()
@@ -206,6 +123,7 @@ class UxnMachine(val device: Device) {
                         }
                     }
 
+                    // Swap
                     SWP -> {
                         if (short) {
                             stack.beginPop()
@@ -224,6 +142,7 @@ class UxnMachine(val device: Device) {
                         }
                     }
 
+                    // Rotate
                     ROT -> {
                         if (short) {
                             stack.beginPop()
@@ -246,6 +165,7 @@ class UxnMachine(val device: Device) {
                         }
                     }
 
+                    // Duplicate
                     DUP -> {
                         if (short) {
                             stack.beginPop()
@@ -262,6 +182,91 @@ class UxnMachine(val device: Device) {
                         }
                     }
 
+                    // Over
+                    OVR -> {
+                        if (short) {
+                            stack.beginPop()
+                            val a = stack.popShort()
+                            val b = stack.popShort()
+                            stack.endPop(keep)
+                            stack.pushShort(b)
+                            stack.pushShort(a)
+                            stack.pushShort(b)
+                        } else {
+                            stack.beginPop()
+                            val a = stack.pop()
+                            val b = stack.pop()
+                            stack.endPop(keep)
+                            stack.push(b)
+                            stack.push(a)
+                            stack.push(b)
+                        }
+                    }
+
+                    // Equal
+                    EQU -> {
+                        if (short) {
+                            stack.beginPop()
+                            val a = stack.popShort()
+                            val b = stack.popShort()
+                            stack.endPop(keep)
+                            stack.push(if (b == a) 1u else 0u)
+                        } else {
+                            stack.binaryOp(keep) { a, b -> if (b == a) 1u else 0u }
+                        }
+                    }
+
+                    // Not Equal
+                    NEQ -> {
+                        if (short) {
+                            stack.beginPop()
+                            val a = stack.popShort()
+                            val b = stack.popShort()
+                            stack.endPop(keep)
+                            stack.push(if (b != a) 1u else 0u)
+                        } else {
+                            stack.binaryOp(keep) { a, b -> if (b != a) 1u else 0u }
+                        }
+                    }
+
+                    // Greater Than
+                    GTH -> {
+                        if (short) {
+                            stack.beginPop()
+                            val a = stack.popShort()
+                            val b = stack.popShort()
+                            stack.endPop(keep)
+                            stack.push(if (b > a) 1u else 0u)
+                        } else {
+                            stack.binaryOp(keep) { a, b -> if (b > a) 1u else 0u }
+                        }
+                    }
+
+                    // Lesser Than
+                    LTH -> {
+                        if (short) {
+                            stack.beginPop()
+                            val a = stack.popShort()
+                            val b = stack.popShort()
+                            stack.endPop(keep)
+                            stack.push(if (b < a) 1u else 0u)
+                        } else {
+                            stack.binaryOp(keep) { a, b -> if (b < a) 1u else 0u }
+                        }
+                    }
+
+                    // Jump
+                    JMP -> {
+                        stack.beginPop()
+                        if (short) {
+                            pc = stack.popShort()
+                        } else {
+                            pcAdd(stack.pop().toByte().toUShort())
+                        }
+                        stack.endPop(keep)
+                    }
+
+                    // Jump Conditional
                     JCN -> {
                         stack.beginPop()
                         val address = if (short) {
@@ -275,6 +280,7 @@ class UxnMachine(val device: Device) {
                         stack.endPop(keep)
                     }
 
+                    // Jump Stash Return
                     JSR -> {
                         val p = pc
                         stack.beginPop()
@@ -287,6 +293,7 @@ class UxnMachine(val device: Device) {
                         returnStack.pushShort(p)
                     }
 
+                    // Stash
                     STH -> {
                         val targetStack = if (op.returnFlag) workingStack else returnStack
                         if (short) {
@@ -302,78 +309,99 @@ class UxnMachine(val device: Device) {
                         }
                     }
 
-                    INC -> {
+                    // Load Zero-Page
+                    LDZ -> {
+                        stack.beginPop()
+                        val address = stack.pop()
+                        stack.endPop(keep)
+                        stack.push(memory[address])
                         if (short) {
-                            stack.beginPop()
-                            val v = stack.popShort()
-                            stack.endPop(keep)
-                            stack.pushShort((v + 1u).toUShort())
-                        } else {
-                            stack.beginPop()
-                            val v = stack.pop()
-                            stack.endPop(keep)
-                            stack.push((v + 1u).toUByte())
+                            stack.push(memory[address + 1u])
                         }
                     }
 
-                    POP -> {
+                    // Store Zero-Page
+                    STZ -> {
                         stack.beginPop()
+                        val address = stack.pop()
                         if (short) {
-                            stack.popShort()
+                            memory[address + 1u] = stack.pop()
+                        }
+                        memory[address] = stack.pop()
+                        stack.endPop(keep)
+                    }
+
+                    // Load Relative
+                    LDR -> {
+                        stack.beginPop()
+                        val offset = stack.pop().toByte().toUShort()
+                        stack.endPop(keep)
+                        stack.push(memory[pc + offset])
+                        if (short) {
+                            stack.push(memory[pc + offset + 1u])
+                        }
+                    }
+
+                    // Store Relative
+                    STR -> {
+                        stack.beginPop()
+                        val offset = stack.pop().toByte().toUShort()
+                        if (short) {
+                            memory[pc + offset + 1u] = stack.pop()
+                        }
+                        memory[pc + offset] = stack.pop()
+                        stack.endPop(keep)
+                    }
+
+                    // Load Absolute
+                    LDA -> {
+                        stack.beginPop()
+                        val address = stack.popShort()
+                        stack.endPop(keep)
+                        stack.push(memory[address])
+                        if (short) {
+                            stack.push(memory[address + 1u])
+                        }
+                    }
+
+                    // Store Absolute
+                    STA -> {
+                        stack.beginPop()
+                        val address = stack.popShort()
+                        if (short) {
+                            memory[address + 1u] = stack.pop()
+                        }
+                        memory[address] = stack.pop()
+                        stack.endPop(keep)
+                    }
+
+                    // Device Input
+                    DEI -> {
+                        stack.beginPop()
+                        val port = stack.pop()
+                        stack.endPop(keep)
+                        if (short) {
+                            stack.pushShort(device.inpShort(port))
                         } else {
-                            stack.pop()
+                            stack.push(device.inp(port))
+                        }
+                    }
+
+                    // Device Output
+                    DEO -> {
+                        stack.beginPop()
+                        val port = stack.pop()
+                        if (short) {
+                            val output = stack.popShort()
+                            device.outShort(port, output)
+                        } else {
+                            val output = stack.pop()
+                            device.out(port, output)
                         }
                         stack.endPop(keep)
                     }
 
-                    EQU -> {
-                        if (short) {
-                            stack.beginPop()
-                            val a = stack.popShort()
-                            val b = stack.popShort()
-                            stack.endPop(keep)
-                            stack.push(if (b == a) 1u else 0u)
-                        } else {
-                            stack.binaryOp(keep) { a, b -> if (b == a) 1u else 0u }
-                        }
-                    }
-
-                    NEQ -> {
-                        if (short) {
-                            stack.beginPop()
-                            val a = stack.popShort()
-                            val b = stack.popShort()
-                            stack.endPop(keep)
-                            stack.push(if (b != a) 1u else 0u)
-                        } else {
-                            stack.binaryOp(keep) { a, b -> if (b != a) 1u else 0u }
-                        }
-                    }
-
-                    GTH -> {
-                        if (short) {
-                            stack.beginPop()
-                            val a = stack.popShort()
-                            val b = stack.popShort()
-                            stack.endPop(keep)
-                            stack.push(if (b > a) 1u else 0u)
-                        } else {
-                            stack.binaryOp(keep) { a, b -> if (b > a) 1u else 0u }
-                        }
-                    }
-
-                    LTH -> {
-                        if (short) {
-                            stack.beginPop()
-                            val a = stack.popShort()
-                            val b = stack.popShort()
-                            stack.endPop(keep)
-                            stack.push(if (b < a) 1u else 0u)
-                        } else {
-                            stack.binaryOp(keep) { a, b -> if (b < a) 1u else 0u }
-                        }
-                    }
-
+                    // Add
                     ADD -> {
                         if (short) {
                             stack.binaryOpShort(keep) { a, b -> (b + a).toUShort() }
@@ -382,22 +410,7 @@ class UxnMachine(val device: Device) {
                         }
                     }
 
-                    DIV -> {
-                        if (short) {
-                            stack.binaryOpShort(keep) { a, b -> if (a == UShort_0) 0u else (b / a).toUShort() }
-                        } else {
-                            stack.binaryOp(keep) { a, b -> if (a == UByte_0) 0u else (b / a).toUByte() }
-                        }
-                    }
-
-                    MUL -> {
-                        if (short) {
-                            stack.binaryOpShort(keep) { a, b -> (b * a).toUShort() }
-                        } else {
-                            stack.binaryOp(keep) { a, b -> (b * a).toUByte() }
-                        }
-                    }
-
+                    // Subtract
                     SUB -> {
                         if (short) {
                             stack.binaryOpShort(keep) { a, b -> (b - a).toUShort() }
@@ -406,14 +419,25 @@ class UxnMachine(val device: Device) {
                         }
                     }
 
-                    ORA -> {
+                    // Multiply
+                    MUL -> {
                         if (short) {
-                            stack.binaryOpShort(keep) { a, b -> b or a }
+                            stack.binaryOpShort(keep) { a, b -> (b * a).toUShort() }
                         } else {
-                            stack.binaryOp(keep) { a, b -> b or a }
+                            stack.binaryOp(keep) { a, b -> (b * a).toUByte() }
                         }
                     }
 
+                    // Divide
+                    DIV -> {
+                        if (short) {
+                            stack.binaryOpShort(keep) { a, b -> if (a == UShort_0) 0u else (b / a).toUShort() }
+                        } else {
+                            stack.binaryOp(keep) { a, b -> if (a == UByte_0) 0u else (b / a).toUByte() }
+                        }
+                    }
+
+                    // And
                     AND -> {
                         if (short) {
                             stack.binaryOpShort(keep) { a, b -> b and a }
@@ -422,6 +446,25 @@ class UxnMachine(val device: Device) {
                         }
                     }
 
+                    // Or
+                    ORA -> {
+                        if (short) {
+                            stack.binaryOpShort(keep) { a, b -> b or a }
+                        } else {
+                            stack.binaryOp(keep) { a, b -> b or a }
+                        }
+                    }
+
+                    // Exclusive Or
+                    EOR -> {
+                        if (short) {
+                            stack.binaryOpShort(keep) { a, b -> b xor a }
+                        } else {
+                            stack.binaryOp(keep) { a, b -> b xor a }
+                        }
+                    }
+
+                    // Shift
                     SFT -> {
                         stack.beginPop()
                         val sh = stack.pop()
