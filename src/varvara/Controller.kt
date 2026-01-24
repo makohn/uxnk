@@ -1,6 +1,6 @@
 package varvara
 
-import uxn.UShort
+import util.*
 
 class Controller : IODevice {
 
@@ -65,7 +65,7 @@ class Controller : IODevice {
     override fun readShort(port: UByte): UShort {
         return when (port) {
             VECTOR -> vector
-            else -> UShort(read((port + 1u).toUByte()), read(port))
+            else -> UShort(read(port), read((port + 1u).toUByte()))
         }
     }
 

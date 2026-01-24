@@ -1,5 +1,7 @@
 package uxn
 
+import util.*
+
 interface Device {
     fun out(port: UByte, value: UByte)
     fun outShort(port: UByte, value: UShort)
@@ -45,19 +47,19 @@ class UxnMachine(val device: Device) {
             JCI -> {
                 pcAdd(2u)
                 if (workingStack.pop() != UByte_0) {
-                    pcAdd(UShort(memory[pc - 1u], memory[pc - 2u]))
+                    pcAdd(UShort(memory[pc - 2u], memory[pc - 1u]))
                 }
             }
 
             JMI -> {
                 pcAdd(2u)
-                pcAdd(UShort(memory[pc - 1u], memory[pc - 2u]))
+                pcAdd(UShort(memory[pc - 2u], memory[pc - 1u]))
             }
 
             JSI -> {
                 pcAdd(2u)
                 returnStack.pushShort(pc)
-                pcAdd(UShort(memory[pc - 1u], memory[pc - 2u]))
+                pcAdd(UShort(memory[pc - 2u], memory[pc - 1u]))
             }
 
             else -> {

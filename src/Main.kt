@@ -1,4 +1,5 @@
 import uxn.*
+import util.*
 import java.io.File
 
 class Console : Device {
@@ -10,7 +11,7 @@ class Console : Device {
 
     val mem = UByteArray(16)
     val consoleVector: UShort
-        get() = UShort(mem[0x1u], mem[0x0u])
+        get() = UShort(mem[0x0u], mem[0x1u])
 
     override fun out(port: UByte, value: UByte) {
         val index = port and 0xfu
@@ -22,9 +23,8 @@ class Console : Device {
     }
 
     override fun outShort(port: UByte, value: UShort) {
-        val (hi, lo) = value.toUBytes()
-        out(port, hi)
-        out((port + 1u).toUByte(), lo)
+        out(port, value.hi)
+        out((port + 1u).toUByte(), value.lo)
     }
 
     override fun inp(port: UByte): UByte {
@@ -59,10 +59,4 @@ fun main() {
             console.consoleInput(uxn, c, 1u)
         }
     }
-}
-
-fun UShort.toUBytes(): UByteArray {
-    val hi = (this.toUInt() shr 8).toUByte()
-    val lo = this.toUByte()
-    return ubyteArrayOf(hi, lo)
 }

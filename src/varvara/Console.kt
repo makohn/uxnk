@@ -1,10 +1,7 @@
 package varvara
 
-import toUBytes
-import uxn.UShort
+import util.*
 import uxn.UxnMachine
-import uxn.get
-import uxn.set
 import java.lang.System
 
 class Console : IODevice {
@@ -18,7 +15,7 @@ class Console : IODevice {
 
     val memory = UByteArray(16)
     val vector: UShort
-        get() = UShort(memory[0x11u], memory[0x10u])
+        get() = UShort(memory[0x10u], memory[0x11u])
 
     override fun write(port: UByte, value: UByte) {
         val index = port and 0xfu
@@ -30,9 +27,8 @@ class Console : IODevice {
     }
 
     override fun writeShort(port: UByte, value: UShort) {
-        val (hi, lo) = value.toUBytes()
-        write(port, hi)
-        write((port + 1u).toUByte(), lo)
+        write(port, value.hi)
+        write((port + 1u).toUByte(), value.lo)
     }
 
     override fun read(port: UByte): UByte {

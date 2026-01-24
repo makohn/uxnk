@@ -1,5 +1,7 @@
 package uxn
 
+import util.*
+
 class UxnStack {
 
     private val bytes = UByteArray(256)
