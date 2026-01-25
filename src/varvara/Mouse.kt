@@ -2,20 +2,18 @@ package varvara
 
 import util.*
 
-class Controller : IODevice {
+class Mouse : IODevice {
 
     companion object {
-        const val BUTTON: UByte = 0x2u
-        const val KEY: UByte = 0x3u
+        const val X: UByte = 0x2u
+        const val Y: UByte = 0x4u
+        const val STATE: UByte = 0x6u
+        const val SCROLL_X: UByte = 0xau
+        const val SCROLL_Y: UByte = 0xcu
 
-        const val A: UByte = 0x01u
-        const val B: UByte = 0x02u
-        const val SELECT: UByte = 0x04u
-        const val START: UByte = 0x08u
-        const val UP: UByte = 0x10u
-        const val DOWN: UByte = 0x20u
-        const val LEFT: UByte = 0x40u
-        const val RIGHT: UByte = 0x80u
+        const val BUTTON_1: UByte = 0x1u
+        const val BUTTON_2: UByte = 0x2u
+        const val BUTTON_3: UByte = 0x4u
     }
 
     private val memory = UByteArray(16)
@@ -40,11 +38,12 @@ class Controller : IODevice {
         return UShort(hi, lo)
     }
 
-    fun setKey(key: Int) {
-        write(KEY, key.toUByte())
+    fun setXY(x: Int, y: Int) {
+        writeShort(X, x.toUShort())
+        writeShort(Y, y.toUShort())
     }
 
-    fun setButton(button: UByte) {
-        write(BUTTON, memory[BUTTON] xor button)
+    fun setButton(state: UByte) {
+        write(STATE, memory[STATE] xor state)
     }
 }

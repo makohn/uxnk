@@ -10,8 +10,8 @@ class Screen(val varvara: Varvara) {
     val uxn: UxnMachine
         get() = varvara.machine
 
-    val bg = BufferedImage(600, 600, BufferedImage.TYPE_INT_ARGB)
-    val fg = BufferedImage(600, 600, BufferedImage.TYPE_INT_ARGB)
+    val bg = BufferedImage(800, 800, BufferedImage.TYPE_INT_ARGB)
+    val fg = BufferedImage(800, 800, BufferedImage.TYPE_INT_ARGB)
 
     companion object {
         const val VECTOR: UByte = 0x0u

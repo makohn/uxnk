@@ -22,6 +22,7 @@ class Varvara : UxnDevice {
     val system = System()
     val screen = Screen(this)
     val controller = Controller()
+    val mouse = Mouse()
 
     override fun output(port: UByte, value: UByte) {
         val device = port and 0xf0u
@@ -31,7 +32,7 @@ class Varvara : UxnDevice {
             CONSOLE -> console.write(p, value)
             SCREEN -> screen.write(p, value)
             CONTROLLER -> controller.write(p, value)
-            MOUSE -> Unit
+            MOUSE -> mouse.write(p, value)
             FILE_A -> Unit
             FILE_B -> Unit
             TIME -> dateTime.write(p, value)
@@ -46,7 +47,7 @@ class Varvara : UxnDevice {
             CONSOLE -> console.writeShort(p, value)
             SCREEN -> screen.writeShort(p, value)
             CONTROLLER -> controller.writeShort(p, value)
-            MOUSE -> Unit
+            MOUSE -> mouse.writeShort(p, value)
             FILE_A -> Unit
             FILE_B -> Unit
             TIME -> dateTime.writeShort(p, value)
@@ -61,7 +62,7 @@ class Varvara : UxnDevice {
 //            CONSOLE -> console.writeShort(p, value)
             SCREEN -> screen.read(p)
             CONTROLLER -> controller.read(p)
-//            MOUSE -> Unit
+            MOUSE -> mouse.read(p)
 //            FILE_A -> Unit
 //            FILE_B -> Unit
             TIME -> dateTime.read(p)
@@ -77,7 +78,7 @@ class Varvara : UxnDevice {
 //            CONSOLE -> console.writeShort(p, value)
             SCREEN -> screen.readShort(p)
             CONTROLLER -> controller.readShort(p)
-//            MOUSE -> Unit
+            MOUSE -> mouse.readShort(p)
 //            FILE_A -> Unit
 //            FILE_B -> Unit
             TIME -> dateTime.readShort(p)
