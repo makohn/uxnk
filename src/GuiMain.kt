@@ -57,9 +57,15 @@ class ControllerListener(varvara: Varvara) : KeyListener {
     }
 
     override fun keyTyped(e: KeyEvent) {
-        controller.setKey(e.keyChar.code)
-        machine.eval(controller.vector)
-        controller.setKey(0)
+        var keyCode = e.keyChar.code
+        if (keyCode in 0x0..<0x80) {
+            if (e.isControlDown && keyCode in 0x1..0x1a) {
+                keyCode += if (e.isShiftDown) 0x40 else 0x60
+            }
+            controller.setKey(keyCode)
+            machine.eval(controller.vector)
+            controller.setKey(0)
+        }
     }
 
     override fun keyPressed(e: KeyEvent) = onKeyEvent(e)
