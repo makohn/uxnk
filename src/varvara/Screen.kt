@@ -1,5 +1,6 @@
 package varvara
 
+import util.*
 import uxn.UxnMachine
 import uxn.test
 import java.awt.Color
@@ -14,10 +15,8 @@ class Screen(val varvara: Varvara) {
     val fg = BufferedImage(800, 800, BufferedImage.TYPE_INT_ARGB)
 
     companion object {
-        const val VECTOR: UByte = 0x0u
         const val WIDTH: UByte = 0x2u
         const val HEIGHT: UByte = 0x4u
-        const val AUTO: UByte = 0x6u
         const val X: UByte = 0x8u
         const val Y: UByte = 0xau
         const val ADDRESS: UByte = 0xcu
@@ -52,53 +51,41 @@ class Screen(val varvara: Varvara) {
         )
     }
 
-    var vector: UShort = 0x0u; private set
+    private val memory = UByteArray(16)
 
-    private var width: UShort = 0x0u // TODO: Actually consider this width
-    private var height: UShort = 0x0u // TODO: Actually consider this height
-
-    private var auto: UByte = 0x0u
-    private var x: UShort = 0x0u
-    private var y: UShort = 0x0u
-    private var address: UShort = 0x0u
+    val vector: UShort get() = UShort(memory[0x0], memory[0x1])
+    private val x: UShort get() = UShort(memory[0x8], memory[0x9])
+    private val y: UShort get() = UShort(memory[0xa], memory[0xb])
+    private val address: UShort get() = UShort(memory[0xc], memory[0xd])
+    private val auto: UByte get() = memory[0x6]
 
     fun read(port: UByte): UByte {
-        return when (port) {
-            AUTO -> auto
-            else -> error("read port=${port.toString(16)}")
-        }
+        return memory[port]
     }
 
     fun readShort(port: UByte): UShort {
         return when (port) {
             WIDTH -> bg.width.toUShort()
             HEIGHT -> bg.height.toUShort()
-            X -> x
-            Y -> y
-            ADDRESS -> address
-            else -> error("readShort port=${port.toString(16)}")
+            else -> {
+                val hi = memory[port]
+                val lo = memory[port + 1u]
+                UShort(hi, lo)
+            }
         }
     }
 
     fun write(port: UByte, value: UByte) {
+        memory[port] = value
         when (port) {
-            AUTO -> auto = value
-            PIXEL -> drawPixel(value) // TODO: Should we also write/read the value to a variable
-            SPRITE -> drawSprite(value) // TODO: Should we also write/read the value to a variable
-            else -> error("write port=${port.toString(16)}, value=${value.toString(16)}")
+            PIXEL -> drawPixel(value)
+            SPRITE -> drawSprite(value)
         }
     }
 
     fun writeShort(port: UByte, value: UShort) {
-        when (port) {
-            VECTOR -> vector = value
-            WIDTH -> width = value
-            HEIGHT -> height = value
-            X -> x = value
-            Y -> y = value
-            ADDRESS -> address = value
-            else -> error("writeShort port=${port.toString(16)}, value=${value.toString(16)}")
-        }
+        write(port, value.hi)
+        write((port + 1u).toUByte(), value.lo)
     }
 
     private fun drawPixel(params: UByte) {
@@ -125,10 +112,10 @@ class Screen(val varvara: Varvara) {
         val autoX = auto.test(0x1u)
         val autoY = auto.test(0x2u)
         if (autoX) {
-            this.x = (this.x + 1u).toUShort()
+            writeShort(X, (this.x + 1u).toUShort())
         }
         if (autoY) {
-            this.y = (this.y + 1u).toUShort()
+            writeShort(Y, (this.y + 1u).toUShort())
         }
     }
 
@@ -159,8 +146,6 @@ class Screen(val varvara: Varvara) {
         val autoX = auto.test(0x1u)
         val autoY = auto.test(0x2u)
         val autoAddress = auto.test(0x4u)
-
-//        println("drawSprite: ${address.toString(16)}, $twoBitMode, $count, $auto, $flipX, $flipY, $sx, $sy, $dx, $dy")
 
         repeat(count + 1) {
             var x = sx
@@ -193,18 +178,18 @@ class Screen(val varvara: Varvara) {
                 sx += -dx * 8
             }
             if (autoAddress) {
-                address = if (twoBitMode) {
+                writeShort(ADDRESS, if (twoBitMode) {
                     address + 0x10u
                 } else {
                     address + 0x08u
-                }.toUShort()
+                }.toUShort())
             }
         }
         if (autoX) {
-            this.x = (this.x + (-dx * 8).toUShort()).toUShort()
+            writeShort(X, (this.x + (-dx * 8).toUShort()).toUShort())
         }
         if (autoY) {
-            this.y = (this.y + (dy * 8).toUShort()).toUShort()
+            writeShort(Y, (this.y + (dy * 8).toUShort()).toUShort())
         }
     }
 }
