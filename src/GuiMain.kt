@@ -40,7 +40,7 @@ class ControllerListener(varvara: Varvara) : KeyListener {
     private val controller = varvara.controller
     private val machine = varvara.machine
 
-    private fun onKeyEvent(e: KeyEvent) {
+    override fun keyPressed(e: KeyEvent) {
         when (e.keyCode) {
             KeyEvent.VK_UP -> controller.setButton(Controller.UP)
             KeyEvent.VK_DOWN -> controller.setButton(Controller.DOWN)
@@ -50,6 +50,22 @@ class ControllerListener(varvara: Varvara) : KeyListener {
             KeyEvent.VK_ALT -> controller.setButton(Controller.B)
             KeyEvent.VK_SHIFT -> controller.setButton(Controller.SELECT)
             KeyEvent.VK_HOME -> controller.setButton(Controller.START)
+            else -> return
+        }
+        machine.eval(controller.vector)
+        controller.setKey(0)
+    }
+
+    override fun keyReleased(e: KeyEvent) {
+        when (e.keyCode) {
+            KeyEvent.VK_UP -> controller.unsetButton(Controller.UP)
+            KeyEvent.VK_DOWN -> controller.unsetButton(Controller.DOWN)
+            KeyEvent.VK_LEFT -> controller.unsetButton(Controller.LEFT)
+            KeyEvent.VK_RIGHT -> controller.unsetButton(Controller.RIGHT)
+            KeyEvent.VK_CONTROL -> controller.unsetButton(Controller.A)
+            KeyEvent.VK_ALT -> controller.unsetButton(Controller.B)
+            KeyEvent.VK_SHIFT -> controller.unsetButton(Controller.SELECT)
+            KeyEvent.VK_HOME -> controller.unsetButton(Controller.START)
             else -> return
         }
         machine.eval(controller.vector)
@@ -67,9 +83,6 @@ class ControllerListener(varvara: Varvara) : KeyListener {
             controller.setKey(0)
         }
     }
-
-    override fun keyPressed(e: KeyEvent) = onKeyEvent(e)
-    override fun keyReleased(e: KeyEvent) = onKeyEvent(e)
 }
 
 class MouseEventListener(varvara: Varvara, private val screen: ScreenPanel) : MouseListener, MouseMotionListener, MouseWheelListener {

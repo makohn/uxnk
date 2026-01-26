@@ -45,6 +45,10 @@ class Controller : IODevice {
     }
 
     fun setButton(button: UByte) {
-        write(BUTTON, memory[BUTTON] xor button)
+        write(BUTTON, memory[BUTTON] or button)
+    }
+
+    fun unsetButton(button: UByte) {
+        write(BUTTON, memory[BUTTON] and button.inv())
     }
 }
