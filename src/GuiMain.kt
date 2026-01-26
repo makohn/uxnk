@@ -5,7 +5,9 @@ import varvara.Varvara
 import java.awt.Color
 import java.awt.Dimension
 import java.awt.Graphics
+import java.awt.Graphics2D
 import java.awt.Point
+import java.awt.RenderingHints
 import java.awt.event.KeyEvent
 import java.awt.event.KeyListener
 import java.awt.event.MouseEvent
@@ -28,7 +30,11 @@ class ScreenPanel(private val screen: Screen) : JPanel() {
 
     override fun paintComponent(g: Graphics?) {
         super.paintComponent(g)
-        g!!.apply {
+        (g as Graphics2D).apply {
+            setRenderingHint(RenderingHints.KEY_RESOLUTION_VARIANT, RenderingHints.VALUE_RESOLUTION_VARIANT_DEFAULT)
+            setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED)
+            setRenderingHint(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_SPEED)
+            setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_SPEED)
             drawImage(screen.bg, 0, 0, null)
             drawImage(screen.fg, 0, 0, null)
         }
