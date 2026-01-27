@@ -1,11 +1,11 @@
 package varvara
 
 import util.*
+import java.util.concurrent.Executors
 import javax.sound.sampled.AudioFormat
 import javax.sound.sampled.AudioSystem
 import javax.sound.sampled.DataLine
 import javax.sound.sampled.SourceDataLine
-import kotlin.math.pow
 
 class Audio(private val varvara: Varvara) : IODevice {
 
@@ -14,70 +14,131 @@ class Audio(private val varvara: Varvara) : IODevice {
     companion object {
         const val PITCH: UByte = 0xfu
 
-        const val BASE_NOTE = 60
+        const val SAMPLE_RATE = 44100
+        const val NOTE_PERIOD = SAMPLE_RATE * 0x4000 / 11025
+        const val ADSR_STEP: Int = SAMPLE_RATE / 0x0f
     }
+
+    private class Voice(
+        val data: ByteArray,
+        val repeat: Boolean,
+        val advance: UInt,
+        val period: UInt,
+        val attack: Int,
+        val decay: Int,
+        val sustain: Int,
+        val release: Int,
+        val volumeLeft: Int,
+        val volumeRight: Int
+    ) {
+        var count: UInt = 0u
+        var index: Int = 0
+        var age: Int = 0
+        var active = true
+
+        fun envelope() = when {
+            release == 0 -> 0x0888
+            age < attack -> 0x0888 * age / attack
+            age < decay -> 0x0444 * (2 * decay - attack - age) / (decay - attack)
+            age < sustain -> 0x0444
+            age < release -> 0x0444 * (release - age) / (release - sustain)
+            else -> {
+                active = false
+                0x0000
+            }
+        }
+
+        fun play(audioPlayer: AudioPlayer) {
+            val buffer = ByteArray(256 * 2)
+            while (active) {
+                for (i in 0..<data.size) {
+                    count += advance
+                    index += (count / period).toInt()
+                    count %= period
+
+                    if (index >= data.size) {
+                        if (!repeat) {
+                            active = false
+                            buffer[i * 2] = 0
+                            buffer[i * 2 + 1] = 0
+                            continue
+                        }
+                        index %= data.size
+                    }
+
+                    val raw = data[index].toInt()
+                    val env = envelope()
+                    age++
+                    val s = raw * env
+
+                    val left = (s * volumeLeft / 0x180).coerceIn(-128, 127).toByte()
+                    val right = (s * volumeRight / 0x180).coerceIn(-128, 127).toByte()
+
+                    buffer[i * 2] = left
+                    buffer[i * 2 + 1] = right
+                }
+                audioPlayer.play(buffer)
+            }
+        }
+    }
+
+    private val advances = uintArrayOf(
+        0x80000u, 0x879c8u, 0x8facdu, 0x9837fu, 0xa1451u, 0xaadc1u,
+        0xb504fu, 0xbfc88u, 0xcb2ffu, 0xd7450u, 0xe411fu, 0xf1a1cu
+    )
 
     private val memory = UByteArray(16)
 
-    var first = false
+    private val executor = Executors.newSingleThreadExecutor()
 
     override fun write(port: UByte, value: UByte) {
         memory[port] = value
         when (port) {
             PITCH -> {
-                val adsr = UShort(memory[8], memory[9])
+                val adsr = UShort(memory[8], memory[9]).toInt()
                 val addr = UShort(memory[0xc], memory[0xd])
                 val len = UShort(memory[0xa], memory[0xb]).toInt()
-                val loop = value and 0x80u
-                val note = value and 0x7fu
-                val bytes = ByteArray(len)
+                val repeat = (value and 0x80u) == UByte_0
+                val note = (value and 0x7fu).toInt()
+                val volumeLeft = (memory[0xe].toInt() ushr 4) and 0xf
+                val volumeRight = memory[0xe].toInt() and 0xf
+                val data = ByteArray(len)
                 for (i in 0..<len) {
-                    bytes[i] = varvara.machine.memory[addr + i.toUShort()].toByte()
+                    data[i] = (varvara.machine.memory[addr + i.toUShort()]).toByte()
                 }
-                println("""
-                    adsr: ${adsr.toString(2)}
-                    len:  $len
-                    addr: $addr
-                    ptch: ${value.toString(2)}
-                    loop: ${loop}
-                    note: ${note}
-                    samp: ${bytes.contentToString()}
-                """.trimIndent())
+//                println("""
+//                    adsr: ${adsr.toString(2)}
+//                    len:  $len
+//                    addr: $addr
+//                    ptch: ${value.toString(2)}
+//                    loop: ${loop}
+//                    note: ${note}
+//                    samp: ${bytes.contentToString()}
+//                """.trimIndent())
 
+                val advance = if (note < 108 && len > 0) advances[note % 12] shr (8 - note / 12) else return
 
-                val step = 2.0.pow((note.toInt() - BASE_NOTE) / 12.0)
-                var phase = 0.0
-                val buffer = ByteArray(512)
+                val attack = ADSR_STEP * (adsr shr 12)
+                val decay = ADSR_STEP * (adsr shr 8 and 0xf) + attack
+                val sustain = ADSR_STEP * (adsr shr 4 and 0xf) + decay
+                val release = ADSR_STEP * (adsr and 0xf) + sustain
 
-                for (i in 0..511) {
-                    buffer[i] = bytes[phase.toInt() and 255]
-                    phase += step
-                }
+                val period = if (len <= 0x100) NOTE_PERIOD * 337 / 2 / len else NOTE_PERIOD
 
-                val attack = adsr and 0xf000u
-                val decay = adsr and 0x0f00u
-                val sustain = adsr and 0x00f0u
-                val release = adsr and 0x000fu
-                play(attack, buffer)
-                play(decay, buffer.map { (it * 0.5).toInt().toByte() }.toByteArray())
-                play(sustain, buffer.map { (it * 0.5).toInt().toByte() }.toByteArray())
-                play(release, ByteArray(buffer.size))
+                val voice = Voice(
+                    data,
+                    repeat,
+                    advance,
+                    period.toUInt(),
+                    attack,
+                    decay,
+                    sustain,
+                    release,
+                    volumeLeft,
+                    volumeRight
+                )
+                voice.play(player)
             }
-        }
-    }
-
-    private fun play(type: UShort, bytes: ByteArray) {
-        var env = type
-        while (env > 0u) {
-            if (env and 0x1u != UShort_0) {
-                val durationMs = 125
-                val totalSamples = (44100f * durationMs / 1000f).toInt()
-                var samplesWritten = 0
-                while (samplesWritten < totalSamples) {
-                    samplesWritten += player.play(bytes)
-                }
-            }
-            env = (env.toUInt() shr 1).toUShort()
         }
     }
 
@@ -99,7 +160,7 @@ class Audio(private val varvara: Varvara) : IODevice {
 
 class AudioPlayer {
 
-    private val format = AudioFormat(44100f, 8, 1, false, false)
+    private val format = AudioFormat(44100f, 16, 2, true, false)
     private val info = DataLine.Info(SourceDataLine::class.java, format)
     private val line = AudioSystem.getLine(info) as SourceDataLine
 
@@ -118,36 +179,4 @@ class AudioPlayer {
         line.stop()
         line.close()
     }
-}
-
-fun main() {
-    val sr = 44100f
-    val format = AudioFormat(sr, 8, 1, false, false)
-    val info = DataLine.Info(SourceDataLine::class.java, format)
-    val line = AudioSystem.getLine(info) as SourceDataLine
-    val sine = byteArrayOf(0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 42, 45, 48, 51, 54, 57, 59, 62, 65, 67, 70, 73, 75, 78, 80, 82, 85, 87, 89, 91, 94, 96, 98, 100, 102, 103, 105, 107, 108, 110, 112, 113, 114, 116, 117, 118, 119, 120, 121, 122, 123, 123, 124, 125, 125, 126, 126, 126, 126, 126, 127, 126, 126, 126, 126, 126, 125, 125, 124, 123, 123, 122, 121, 120, 119, 118, 117, 116, 114, 113, 112, 110, 108, 107, 105, 103, 102, 100, 98, 96, 94, 91, 89, 87, 85, 82, 80, 78, 75, 73, 70, 67, 65, 62, 59, 57, 54, 51, 48, 45, 42, 39, 36, 33, 30, 27, 24, 21, 18, 15, 12, 9, 6, 3, 0, -3, -6, -9, -12, -15, -18, -21, -24, -27, -30, -33, -36, -39, -42, -45, -48, -51, -54, -57, -59, -62, -65, -67, -70, -73, -75, -78, -80, -82, -85, -87, -89, -91, -94, -96, -98, -100, -102, -103, -105, -107, -108, -110, -112, -113, -114, -116, -117, -118, -119, -120, -121, -122, -123, -123, -124, -125, -125, -126, -126, -126, -126, -126, -127, -126, -126, -126, -126, -126, -125, -125, -124, -123, -123, -122, -121, -120, -119, -118, -117, -116, -114, -113, -112, -110, -108, -107, -105, -103, -102, -100, -98, -96, -94, -91, -89, -87, -85, -82, -80, -78, -75, -73, -70, -67, -65, -62, -59, -57, -54, -51, -48, -45, -42, -39, -36, -33, -30, -27, -24, -21, -18, -15, -12, -9, -6, -3)
-
-    line.open(format)
-    line.start()
-
-    repeat(5) {
-        val note = 84 + it
-        val baseNote = 60
-
-        val step = 2.0.pow((note - baseNote) / 12.0)
-        var phase = 0.0
-        val buffer = ByteArray(512)
-
-        repeat(80) {
-            for (i in 0..511) {
-                buffer[i] = sine[phase.toInt() and 255]
-                phase += step
-            }
-            line.write(buffer, 0, 512)
-        }
-    }
-
-    line.drain()
-    line.stop()
-    line.close()
 }
