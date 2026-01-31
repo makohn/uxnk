@@ -43,7 +43,11 @@ class Mouse : IODevice {
         writeShort(Y, y.toUShort())
     }
 
-    fun setButton(state: UByte) {
-        write(STATE, memory[STATE] xor state)
+    fun setButton(button: UByte) {
+        write(STATE, memory[STATE] or button)
+    }
+
+    fun unsetButton(button: UByte) {
+        write(STATE, memory[STATE] and button.inv())
     }
 }

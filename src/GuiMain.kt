@@ -109,11 +109,21 @@ class MouseEventListener(varvara: Varvara, private val screen: ScreenPanel) : Mo
         }
     }
 
-    private fun onMouseClicked(e: MouseEvent) {
+    override fun mousePressed(e: MouseEvent) {
         when (e.button) {
             MouseEvent.BUTTON1 -> mouse.setButton(Mouse.BUTTON_1)
             MouseEvent.BUTTON2 -> mouse.setButton(Mouse.BUTTON_2)
             MouseEvent.BUTTON3 -> mouse.setButton(Mouse.BUTTON_3)
+            else -> return
+        }
+        machine.eval(mouse.vector)
+    }
+
+    override fun mouseReleased(e: MouseEvent) {
+        when (e.button) {
+            MouseEvent.BUTTON1 -> mouse.unsetButton(Mouse.BUTTON_1)
+            MouseEvent.BUTTON2 -> mouse.unsetButton(Mouse.BUTTON_2)
+            MouseEvent.BUTTON3 -> mouse.unsetButton(Mouse.BUTTON_3)
             else -> return
         }
         machine.eval(mouse.vector)
@@ -125,8 +135,6 @@ class MouseEventListener(varvara: Varvara, private val screen: ScreenPanel) : Mo
 
     override fun mouseMoved(e: MouseEvent) = onMouseMoved(e)
     override fun mouseDragged(e: MouseEvent) = onMouseMoved(e)
-    override fun mousePressed(e: MouseEvent) = onMouseClicked(e)
-    override fun mouseReleased(e: MouseEvent) = onMouseClicked(e)
 
     // No-Ops
     override fun mouseClicked(e: MouseEvent?) = Unit
