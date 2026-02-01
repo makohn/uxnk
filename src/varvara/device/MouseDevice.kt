@@ -1,8 +1,9 @@
-package varvara
+package varvara.device
 
 import util.*
+import varvara.Device
 
-class Mouse : IODevice {
+class MouseDevice : Device() {
 
     companion object {
         const val X: UByte = 0x2u
@@ -16,29 +17,9 @@ class Mouse : IODevice {
         const val BUTTON_3: UByte = 0x4u
     }
 
-    private val memory = UByteArray(16)
     val vector: UShort get() = UShort(memory[0], memory[1])
 
-    override fun write(port: UByte, value: UByte) {
-        memory[port] = value
-    }
-
-    override fun writeShort(port: UByte, value: UShort) {
-        write(port, value.hi)
-        write((port + 1u).toUByte(), value.lo)
-    }
-
-    override fun read(port: UByte): UByte {
-        return memory[port]
-    }
-
-    override fun readShort(port: UByte): UShort {
-        val hi = memory[port]
-        val lo = memory[port + 1u]
-        return UShort(hi, lo)
-    }
-
-    fun setXY(x: Int, y: Int) {
+    fun setPos(x: Int, y: Int) {
         writeShort(X, x.toUShort())
         writeShort(Y, y.toUShort())
     }

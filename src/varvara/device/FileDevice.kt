@@ -1,12 +1,13 @@
-package varvara
+package varvara.device
 
 import util.*
-import uxn.test
+import varvara.Device
+import varvara.Varvara
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 
-class FileDevice(varvara: Varvara) : IODevice {
+class FileDevice(varvara: Varvara) : Device() {
 
     companion object {
         const val SUCCESS: UByte = 0x2u
@@ -16,8 +17,7 @@ class FileDevice(varvara: Varvara) : IODevice {
         const val WRITE: UByte = 0xeu
     }
 
-    private val memory = UByteArray(16)
-    private val uxn = varvara.machine
+    private val uxn = varvara.uxn
 
     private val length: Int get() = UShort(memory[0xau], memory[0xbu]).toInt()
     private val name: String get() = UShort(memory[0x8u], memory[0x9u]).let {
@@ -32,7 +32,7 @@ class FileDevice(varvara: Varvara) : IODevice {
         set(value) = writeShort(SUCCESS, value)
 
     override fun write(port: UByte, value: UByte) {
-        memory[port] = value
+        super.write(port, value)
         when (port) {
             DELETE -> {
                 val file = File(name)
@@ -43,8 +43,7 @@ class FileDevice(varvara: Varvara) : IODevice {
     }
 
     override fun writeShort(port: UByte, value: UShort) {
-        write(port, value.hi)
-        write((port + 1u).toUByte(), value.lo)
+        super.writeShort(port, value)
         when (port) {
             READ -> {
                 val file = File(name)
@@ -90,16 +89,6 @@ class FileDevice(varvara: Varvara) : IODevice {
                 success = size.toUShort()
             }
         }
-    }
-
-    override fun read(port: UByte): UByte {
-        return memory[port]
-    }
-
-    override fun readShort(port: UByte): UShort {
-        val hi = memory[port]
-        val lo = memory[port + 1u]
-        return UShort(hi, lo)
     }
 
     private fun File.stats(n: Int = 4): String {

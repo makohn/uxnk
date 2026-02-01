@@ -2,6 +2,7 @@ package varvara
 
 import uxn.UxnDevice
 import uxn.UxnMachine
+import varvara.device.*
 
 class Varvara : UxnDevice {
 
@@ -9,87 +10,43 @@ class Varvara : UxnDevice {
         const val SYSTEM: UByte = 0x00u
         const val CONSOLE: UByte = 0x10u
         const val SCREEN: UByte = 0x20u
-        val AUDIO = 0x30u..0x60u
         const val CONTROLLER: UByte = 0x80u
         const val MOUSE: UByte = 0x90u
-        val FILE = 0xa0u..0xb0u
         const val TIME: UByte = 0xc0u
+
+        val AUDIO = 0x30u..0x60u
+        val FILE = 0xa0u..0xb0u
     }
 
-    val machine = UxnMachine(this)
-    private val console = Console()
-    private val dateTime = DateTime()
-    val system = System()
-    val screen = Screen(this)
-    val controller = Controller()
-    val mouse = Mouse()
-    private val audio = Array(4) { Audio(this) }
-    private val file = Array(2) { FileDevice(this) }
+    val uxn = UxnMachine(this)
+    val system = SystemDevice()
+    val console = ConsoleDevice()
+    val screen = ScreenDevice(this)
+    val audio = Array(4) { AudioDevice(this) }
+    val controller = ControllerDevice()
+    val mouse = MouseDevice()
+    val file = Array(2) { FileDevice(this) }
+    val dateTime = DateTimeDevice()
 
-    override fun output(port: UByte, value: UByte) {
-        val device = port and 0xf0u
-        val p = port and 0xfu
-        when (device) {
-            SYSTEM -> system.write(p, value)
-            CONSOLE -> console.write(p, value)
-            SCREEN -> screen.write(p, value)
-            in AUDIO -> audio[device].write(p, value)
-            CONTROLLER -> controller.write(p, value)
-            MOUSE -> mouse.write(p, value)
-            in FILE -> file[device].write(p, value)
-            TIME -> dateTime.write(p, value)
-        }
+    override fun output(port: UByte, value: UByte) = Device(port).write(port and 0xfu, value)
+    override fun outputShort(port: UByte, value: UShort) = Device(port).writeShort(port and 0xfu, value)
+    override fun input(port: UByte) = Device(port).read(port and 0xfu)
+    override fun inputShort(port: UByte) = Device(port).readShort(port and 0xfu)
+
+    private fun Device(port: UByte) = when (val device = port and 0xf0u) {
+        SYSTEM -> system
+        CONSOLE -> console
+        SCREEN -> screen
+        in AUDIO -> audio[device]
+        CONTROLLER -> controller
+        MOUSE -> mouse
+        in FILE -> file[device]
+        TIME -> dateTime
+        else -> error("Unsupported device: ${device.toString(16)}")
     }
 
-    override fun outputShort(port: UByte, value: UShort) {
-        val device = port and 0xf0u
-        val p = port and 0xfu
-        when (device) {
-            SYSTEM -> system.writeShort(p, value)
-            CONSOLE -> console.writeShort(p, value)
-            SCREEN -> screen.writeShort(p, value)
-            in AUDIO -> audio[device].writeShort(p, value)
-            CONTROLLER -> controller.writeShort(p, value)
-            MOUSE -> mouse.writeShort(p, value)
-            in FILE -> file[device].writeShort(p, value)
-            TIME -> dateTime.writeShort(p, value)
-        }
-    }
-
-    override fun input(port: UByte): UByte {
-        val device = port and 0xf0u
-        val p = port and 0xfu
-        return when (device) {
-            SYSTEM -> system.read(p)
-            CONSOLE -> console.read(p)
-            SCREEN -> screen.read(p)
-            in AUDIO -> audio[device].read(p)
-            CONTROLLER -> controller.read(p)
-            MOUSE -> mouse.read(p)
-            in FILE -> file[device].read(p)
-            TIME -> dateTime.read(p)
-            else -> 0x0u
-        }
-    }
-
-    override fun inputShort(port: UByte): UShort {
-        val device = port and 0xf0u
-        val p = port and 0xfu
-        return when (device) {
-            SYSTEM -> system.readShort(p)
-            CONSOLE -> console.readShort(p)
-            SCREEN -> screen.readShort(p)
-            in AUDIO -> audio[device].readShort(p)
-            CONTROLLER -> controller.readShort(p)
-            MOUSE -> mouse.readShort(p)
-            in FILE -> file[device].readShort(p)
-            TIME -> dateTime.readShort(p)
-            else -> 0x0u
-        }
-    }
-
-    private operator fun Array<Audio>.get(device: UByte): Audio {
-        return audio[(device.toInt() shr 4) - 3]
+    private operator fun Array<AudioDevice>.get(device: UByte): AudioDevice {
+        return audio[(device.toInt() shr 4) - 0x3]
     }
 
     private operator fun Array<FileDevice>.get(device: UByte): FileDevice {

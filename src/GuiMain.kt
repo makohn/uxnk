@@ -1,6 +1,6 @@
-import varvara.Controller
-import varvara.Mouse
-import varvara.Screen
+import varvara.device.ControllerDevice
+import varvara.device.MouseDevice
+import varvara.device.ScreenDevice
 import varvara.Varvara
 import java.awt.Color
 import java.awt.Dimension
@@ -22,7 +22,7 @@ import javax.swing.JPanel
 import javax.swing.Timer
 import kotlin.concurrent.thread
 
-class ScreenPanel(private val screen: Screen) : JPanel() {
+class ScreenPanel(private val screen: ScreenDevice) : JPanel() {
 
     init {
         preferredSize = Dimension(screen.bg.width, screen.bg.height)
@@ -44,37 +44,37 @@ class ScreenPanel(private val screen: Screen) : JPanel() {
 class ControllerListener(varvara: Varvara) : KeyListener {
 
     private val controller = varvara.controller
-    private val machine = varvara.machine
+    private val uxn = varvara.uxn
 
     override fun keyPressed(e: KeyEvent) {
         when (e.keyCode) {
-            KeyEvent.VK_UP -> controller.setButton(Controller.UP)
-            KeyEvent.VK_DOWN -> controller.setButton(Controller.DOWN)
-            KeyEvent.VK_LEFT -> controller.setButton(Controller.LEFT)
-            KeyEvent.VK_RIGHT -> controller.setButton(Controller.RIGHT)
-            KeyEvent.VK_CONTROL -> controller.setButton(Controller.A)
-            KeyEvent.VK_ALT -> controller.setButton(Controller.B)
-            KeyEvent.VK_SHIFT -> controller.setButton(Controller.SELECT)
-            KeyEvent.VK_HOME -> controller.setButton(Controller.START)
+            KeyEvent.VK_UP -> controller.setButton(ControllerDevice.UP)
+            KeyEvent.VK_DOWN -> controller.setButton(ControllerDevice.DOWN)
+            KeyEvent.VK_LEFT -> controller.setButton(ControllerDevice.LEFT)
+            KeyEvent.VK_RIGHT -> controller.setButton(ControllerDevice.RIGHT)
+            KeyEvent.VK_CONTROL -> controller.setButton(ControllerDevice.A)
+            KeyEvent.VK_ALT -> controller.setButton(ControllerDevice.B)
+            KeyEvent.VK_SHIFT -> controller.setButton(ControllerDevice.SELECT)
+            KeyEvent.VK_HOME -> controller.setButton(ControllerDevice.START)
             else -> return
         }
-        machine.eval(controller.vector)
+        uxn.eval(controller.vector)
         controller.setKey(0)
     }
 
     override fun keyReleased(e: KeyEvent) {
         when (e.keyCode) {
-            KeyEvent.VK_UP -> controller.unsetButton(Controller.UP)
-            KeyEvent.VK_DOWN -> controller.unsetButton(Controller.DOWN)
-            KeyEvent.VK_LEFT -> controller.unsetButton(Controller.LEFT)
-            KeyEvent.VK_RIGHT -> controller.unsetButton(Controller.RIGHT)
-            KeyEvent.VK_CONTROL -> controller.unsetButton(Controller.A)
-            KeyEvent.VK_ALT -> controller.unsetButton(Controller.B)
-            KeyEvent.VK_SHIFT -> controller.unsetButton(Controller.SELECT)
-            KeyEvent.VK_HOME -> controller.unsetButton(Controller.START)
+            KeyEvent.VK_UP -> controller.unsetButton(ControllerDevice.UP)
+            KeyEvent.VK_DOWN -> controller.unsetButton(ControllerDevice.DOWN)
+            KeyEvent.VK_LEFT -> controller.unsetButton(ControllerDevice.LEFT)
+            KeyEvent.VK_RIGHT -> controller.unsetButton(ControllerDevice.RIGHT)
+            KeyEvent.VK_CONTROL -> controller.unsetButton(ControllerDevice.A)
+            KeyEvent.VK_ALT -> controller.unsetButton(ControllerDevice.B)
+            KeyEvent.VK_SHIFT -> controller.unsetButton(ControllerDevice.SELECT)
+            KeyEvent.VK_HOME -> controller.unsetButton(ControllerDevice.START)
             else -> return
         }
-        machine.eval(controller.vector)
+        uxn.eval(controller.vector)
         controller.setKey(0)
     }
 
@@ -85,7 +85,7 @@ class ControllerListener(varvara: Varvara) : KeyListener {
                 keyCode += if (e.isShiftDown) 0x40 else 0x60
             }
             controller.setKey(keyCode)
-            machine.eval(controller.vector)
+            uxn.eval(controller.vector)
             controller.setKey(0)
         }
     }
@@ -98,35 +98,35 @@ class MouseEventListener(varvara: Varvara, private val screen: ScreenPanel) : Mo
     }
 
     private val mouse = varvara.mouse
-    private val machine = varvara.machine
+    private val uxn = varvara.uxn
 
     private fun onMouseMoved(e: MouseEvent) {
         // TODO: This range check doesn't seem to be the optimal way to solve this.
         //  Also x y don't seem to be correct in perifs test when compared to SDL2 implementation
         if (e.x in WINDOW_BORDER..screen.width-WINDOW_BORDER && e.y in WINDOW_BORDER..screen.height-WINDOW_BORDER) {
-            mouse.setXY(e.x, e.y)
-            machine.eval(mouse.vector)
+            mouse.setPos(e.x, e.y)
+            uxn.eval(mouse.vector)
         }
     }
 
     override fun mousePressed(e: MouseEvent) {
         when (e.button) {
-            MouseEvent.BUTTON1 -> mouse.setButton(Mouse.BUTTON_1)
-            MouseEvent.BUTTON2 -> mouse.setButton(Mouse.BUTTON_2)
-            MouseEvent.BUTTON3 -> mouse.setButton(Mouse.BUTTON_3)
+            MouseEvent.BUTTON1 -> mouse.setButton(MouseDevice.BUTTON_1)
+            MouseEvent.BUTTON2 -> mouse.setButton(MouseDevice.BUTTON_2)
+            MouseEvent.BUTTON3 -> mouse.setButton(MouseDevice.BUTTON_3)
             else -> return
         }
-        machine.eval(mouse.vector)
+        uxn.eval(mouse.vector)
     }
 
     override fun mouseReleased(e: MouseEvent) {
         when (e.button) {
-            MouseEvent.BUTTON1 -> mouse.unsetButton(Mouse.BUTTON_1)
-            MouseEvent.BUTTON2 -> mouse.unsetButton(Mouse.BUTTON_2)
-            MouseEvent.BUTTON3 -> mouse.unsetButton(Mouse.BUTTON_3)
+            MouseEvent.BUTTON1 -> mouse.unsetButton(MouseDevice.BUTTON_1)
+            MouseEvent.BUTTON2 -> mouse.unsetButton(MouseDevice.BUTTON_2)
+            MouseEvent.BUTTON3 -> mouse.unsetButton(MouseDevice.BUTTON_3)
             else -> return
         }
-        machine.eval(mouse.vector)
+        uxn.eval(mouse.vector)
     }
 
     override fun mouseWheelMoved(e: MouseWheelEvent) {
@@ -144,9 +144,9 @@ class MouseEventListener(varvara: Varvara, private val screen: ScreenPanel) : Mo
 
 fun main() {
     val varvara = Varvara()
-    val uxn = varvara.machine
+    val uxn = varvara.uxn
     val screenPanel = ScreenPanel(varvara.screen)
-    val rom = File("rom/perifs.rom").readBytes().toUByteArray()
+    val rom = File("rom/catclock.rom").readBytes().toUByteArray()
     uxn.loadRom(rom)
 
     val timer = Timer(1000 / 60) {

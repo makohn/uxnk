@@ -1,13 +1,15 @@
-package varvara
+package varvara.device
 
 import util.*
+import varvara.Device
+import varvara.Varvara
 import java.util.concurrent.Executors
 import javax.sound.sampled.AudioFormat
 import javax.sound.sampled.AudioSystem
 import javax.sound.sampled.DataLine
 import javax.sound.sampled.SourceDataLine
 
-class Audio(private val varvara: Varvara) : IODevice {
+class AudioDevice(varvara: Varvara) : Device() {
 
     companion object {
         const val PITCH: UByte = 0xfu
@@ -22,8 +24,7 @@ class Audio(private val varvara: Varvara) : IODevice {
         )
     }
 
-    private val memory = UByteArray(16)
-
+    private val uxn = varvara.uxn
     private val player = AudioPlayer()
     private val executor = Executors.newSingleThreadExecutor()
 
@@ -99,7 +100,7 @@ class Audio(private val varvara: Varvara) : IODevice {
         val period = if (length <= 0x100u) (NOTE_PERIOD * 337 / 2 / len.toInt()).toUInt() else NOTE_PERIOD.toUInt()
 
         return UxnAudio(
-            varvara.machine.memory,
+            uxn.memory,
             address,
             length,
             repeat,
@@ -115,7 +116,7 @@ class Audio(private val varvara: Varvara) : IODevice {
     }
 
     override fun write(port: UByte, value: UByte) {
-        memory[port] = value
+        super.write(port, value)
         when (port) {
             PITCH -> {
                 player.stop()
@@ -130,21 +131,6 @@ class Audio(private val varvara: Varvara) : IODevice {
                 }
             }
         }
-    }
-
-    override fun writeShort(port: UByte, value: UShort) {
-        write(port, value.hi)
-        write((port + 1u).toUByte(), value.lo)
-    }
-
-    override fun read(port: UByte): UByte {
-        return memory[port]
-    }
-
-    override fun readShort(port: UByte): UShort {
-        val hi = memory[port]
-        val lo = memory[port + 1u]
-        return UShort(hi, lo)
     }
 
     private class AudioPlayer {

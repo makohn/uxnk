@@ -1,10 +1,10 @@
-package varvara
+package varvara.device
 
 import util.*
 import uxn.UxnMachine
-import java.lang.System
+import varvara.Device
 
-class Console : IODevice {
+class ConsoleDevice : Device() {
 
     companion object {
         const val WRITE: UByte = 0x8u
@@ -13,31 +13,14 @@ class Console : IODevice {
         const val TYPE: UInt = 0x7u
     }
 
-    val memory = UByteArray(16)
-    val vector: UShort
-        get() = UShort(memory[0x10u], memory[0x11u])
+    val vector: UShort get() = UShort(memory[0], memory[1])
 
     override fun write(port: UByte, value: UByte) {
-        memory[port] = value
+        super.write(port, value)
         when (port) {
             WRITE -> print(value.toInt().toChar())
             ERROR -> System.err.print(value.toInt().toChar())
         }
-    }
-
-    override fun writeShort(port: UByte, value: UShort) {
-        write(port, value.hi)
-        write((port + 1u).toUByte(), value.lo)
-    }
-
-    override fun read(port: UByte): UByte {
-        return memory[port]
-    }
-
-    override fun readShort(port: UByte): UShort {
-        val hi = memory[port]
-        val lo = memory[port - 1u]
-        return UShort(lo, hi)
     }
 
     fun consoleInput(uxn: UxnMachine, c: UByte, type: UByte) {

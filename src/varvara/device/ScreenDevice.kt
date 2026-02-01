@@ -1,15 +1,12 @@
-package varvara
+package varvara.device
 
 import util.*
-import uxn.UxnMachine
-import uxn.test
+import varvara.Device
+import varvara.Varvara
 import java.awt.Color
 import java.awt.image.BufferedImage
 
-class Screen(val varvara: Varvara) {
-
-    val uxn: UxnMachine
-        get() = varvara.machine
+class ScreenDevice(varvara: Varvara) : Device() {
 
     val bg = BufferedImage(800, 800, BufferedImage.TYPE_INT_ARGB)
     val fg = BufferedImage(800, 800, BufferedImage.TYPE_INT_ARGB)
@@ -29,14 +26,16 @@ class Screen(val varvara: Varvara) {
         const val UPPER_LEFT: UByte = 0x30u
 
         private val TRANSPARENT = Color(0, 0, 0, 0)
+
+        private val blendingModes = arrayOf(
+            intArrayOf(0, 0, 0, 0, 1, 0, 1, 1, 2, 2, 0, 2, 3, 3, 3, 0),
+            intArrayOf(0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3),
+            intArrayOf(1, 2, 3, 1, 1, 2, 3, 1, 1, 2, 3, 1, 1, 2, 3, 1),
+            intArrayOf(2, 3, 1, 2, 2, 3, 1, 2, 2, 3, 1, 2, 2, 3, 1, 2),
+        )
     }
 
-    private val blendingModes = arrayOf(
-        intArrayOf(0, 0, 0, 0, 1, 0, 1, 1, 2, 2, 0, 2, 3, 3, 3, 0),
-        intArrayOf(0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3),
-        intArrayOf(1, 2, 3, 1, 1, 2, 3, 1, 1, 2, 3, 1, 1, 2, 3, 1),
-        intArrayOf(2, 3, 1, 2, 2, 3, 1, 2, 2, 3, 1, 2, 2, 3, 1, 2),
-    )
+    private val uxn = varvara.uxn
 
     private val colors: Array<Color> by lazy {
         val system = varvara.system
@@ -51,41 +50,26 @@ class Screen(val varvara: Varvara) {
         )
     }
 
-    private val memory = UByteArray(16)
-
     val vector: UShort get() = UShort(memory[0x0], memory[0x1])
     private val x: UShort get() = UShort(memory[0x8], memory[0x9])
     private val y: UShort get() = UShort(memory[0xa], memory[0xb])
     private val address: UShort get() = UShort(memory[0xc], memory[0xd])
     private val auto: UByte get() = memory[0x6]
 
-    fun read(port: UByte): UByte {
-        return memory[port]
-    }
-
-    fun readShort(port: UByte): UShort {
+    override fun readShort(port: UByte): UShort {
         return when (port) {
             WIDTH -> bg.width.toUShort()
             HEIGHT -> bg.height.toUShort()
-            else -> {
-                val hi = memory[port]
-                val lo = memory[port + 1u]
-                UShort(hi, lo)
-            }
+            else -> super.readShort(port)
         }
     }
 
-    fun write(port: UByte, value: UByte) {
-        memory[port] = value
+    override fun write(port: UByte, value: UByte) {
+        super.write(port, value)
         when (port) {
             PIXEL -> drawPixel(value)
             SPRITE -> drawSprite(value)
         }
-    }
-
-    fun writeShort(port: UByte, value: UShort) {
-        write(port, value.hi)
-        write((port + 1u).toUByte(), value.lo)
     }
 
     private fun drawPixel(params: UByte) {

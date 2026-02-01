@@ -1,9 +1,10 @@
-package varvara
+package varvara.device
 
+import varvara.Device
 import java.time.LocalDateTime
 import java.util.*
 
-class DateTime : IODevice {
+class DateTimeDevice : Device() {
 
     companion object {
         const val YEAR: UByte = 0x0u
