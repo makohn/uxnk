@@ -12,8 +12,7 @@ class Varvara : UxnDevice {
         val AUDIO = 0x30u..0x60u
         const val CONTROLLER: UByte = 0x80u
         const val MOUSE: UByte = 0x90u
-        const val FILE_A: UByte = 0xa0u
-        const val FILE_B: UByte = 0xb0u
+        val FILE = 0xa0u..0xb0u
         const val TIME: UByte = 0xc0u
     }
 
@@ -25,6 +24,7 @@ class Varvara : UxnDevice {
     val controller = Controller()
     val mouse = Mouse()
     private val audio = Array(4) { Audio(this) }
+    private val file = Array(2) { FileDevice(this) }
 
     override fun output(port: UByte, value: UByte) {
         val device = port and 0xf0u
@@ -36,8 +36,7 @@ class Varvara : UxnDevice {
             in AUDIO -> audio[device].write(p, value)
             CONTROLLER -> controller.write(p, value)
             MOUSE -> mouse.write(p, value)
-            FILE_A -> Unit
-            FILE_B -> Unit
+            in FILE -> file[device].write(p, value)
             TIME -> dateTime.write(p, value)
         }
     }
@@ -52,8 +51,7 @@ class Varvara : UxnDevice {
             in AUDIO -> audio[device].writeShort(p, value)
             CONTROLLER -> controller.writeShort(p, value)
             MOUSE -> mouse.writeShort(p, value)
-            FILE_A -> Unit
-            FILE_B -> Unit
+            in FILE -> file[device].writeShort(p, value)
             TIME -> dateTime.writeShort(p, value)
         }
     }
@@ -63,13 +61,12 @@ class Varvara : UxnDevice {
         val p = port and 0xfu
         return when (device) {
             SYSTEM -> system.read(p)
-//            CONSOLE -> console.writeShort(p, value)
+            CONSOLE -> console.read(p)
             SCREEN -> screen.read(p)
             in AUDIO -> audio[device].read(p)
             CONTROLLER -> controller.read(p)
             MOUSE -> mouse.read(p)
-//            FILE_A -> Unit
-//            FILE_B -> Unit
+            in FILE -> file[device].read(p)
             TIME -> dateTime.read(p)
             else -> 0x0u
         }
@@ -80,13 +77,12 @@ class Varvara : UxnDevice {
         val p = port and 0xfu
         return when (device) {
             SYSTEM -> system.readShort(p)
-//            CONSOLE -> console.writeShort(p, value)
+            CONSOLE -> console.readShort(p)
             SCREEN -> screen.readShort(p)
             in AUDIO -> audio[device].readShort(p)
             CONTROLLER -> controller.readShort(p)
             MOUSE -> mouse.readShort(p)
-//            FILE_A -> Unit
-//            FILE_B -> Unit
+            in FILE -> file[device].readShort(p)
             TIME -> dateTime.readShort(p)
             else -> 0x0u
         }
@@ -94,5 +90,9 @@ class Varvara : UxnDevice {
 
     private operator fun Array<Audio>.get(device: UByte): Audio {
         return audio[(device.toInt() shr 4) - 3]
+    }
+
+    private operator fun Array<FileDevice>.get(device: UByte): FileDevice {
+        return file[(device.toInt() shr 4) - 0xa]
     }
 }
