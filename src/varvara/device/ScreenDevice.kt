@@ -8,10 +8,10 @@ import java.awt.image.BufferedImage
 
 class ScreenDevice(varvara: Varvara) : Device() {
 
-    val bg = BufferedImage(800, 800, BufferedImage.TYPE_INT_ARGB)
-    val fg = BufferedImage(800, 800, BufferedImage.TYPE_INT_ARGB)
-
     companion object {
+        const val DEFAULT_WIDTH: Int = 64 * 8
+        const val DEFAULT_HEIGHT: Int = 40 * 8
+
         const val WIDTH: UByte = 0x2u
         const val HEIGHT: UByte = 0x4u
         const val X: UByte = 0x8u
@@ -35,9 +35,12 @@ class ScreenDevice(varvara: Varvara) : Device() {
         )
     }
 
+    var bg = BufferedImage(DEFAULT_WIDTH, DEFAULT_HEIGHT, BufferedImage.TYPE_INT_ARGB); private set
+    var fg = BufferedImage(DEFAULT_WIDTH, DEFAULT_HEIGHT, BufferedImage.TYPE_INT_ARGB); private set
+
     private val uxn = varvara.uxn
 
-    private val colors: Array<Color> by lazy {
+    val colors: Array<Color> by lazy {
         val system = varvara.system
         val r = system.red.toInt()
         val g = system.green.toInt()
@@ -72,6 +75,20 @@ class ScreenDevice(varvara: Varvara) : Device() {
         }
     }
 
+    override fun writeShort(port: UByte, value: UShort) {
+        super.writeShort(port, value)
+        when (port) {
+            WIDTH -> {
+                bg = BufferedImage(value.toInt(), bg.height, bg.type)
+                fg = BufferedImage(value.toInt(), fg.height, fg.type)
+            }
+            HEIGHT -> {
+                bg = BufferedImage(bg.width, value.toInt(), bg.type)
+                fg = BufferedImage(fg.width, value.toInt(), fg.type)
+            }
+        }
+    }
+
     private fun drawPixel(params: UByte) {
         val color = colors[(params and 0x3u).toInt()]
         val flip = params and 0x30u
@@ -91,7 +108,9 @@ class ScreenDevice(varvara: Varvara) : Device() {
                 UPPER_LEFT -> g.fillRect(0, 0, layer.width - x, layer.height - y)
             }
         } else {
-            layer.setRGB(x, y, color.rgb)
+            if (x < bg.width && y < bg.height) {
+                layer.setRGB(x, y, color.rgb)
+            }
         }
         val autoX = auto.test(0x1u)
         val autoY = auto.test(0x2u)
@@ -148,7 +167,9 @@ class ScreenDevice(varvara: Varvara) : Device() {
                     px = blendingModes[px][c]
                     if (drawZero || px > 0) {
                         val color = if (!fg || px > 0) colors[px] else TRANSPARENT
-                        layer.setRGB(x, y, color.rgb)
+                        if (x < bg.width && y < bg.height) {
+                            layer.setRGB(x, y, color.rgb)
+                        }
                     }
                     x += dx
                 }

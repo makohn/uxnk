@@ -27,10 +27,21 @@ tasks.withType<Test> {
     workingDir = rootProject.projectDir
 }
 
+tasks.jar.configure {
+    manifest {
+        attributes(mapOf("Main-Class" to "MainKt"))
+    }
+    configurations["compileClasspath"].forEach { file: File ->
+        from(zipTree(file.absoluteFile))
+    }
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+}
+
 kotlin {
     compilerOptions {
         freeCompilerArgs.addAll("-opt-in=kotlin.ExperimentalUnsignedTypes")
     }
+    jvmToolchain(21)
 }
 
 dependencies {
