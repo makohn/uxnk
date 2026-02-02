@@ -60,11 +60,10 @@ class AudioDevice(varvara: Varvara) : Device() {
             }
         }
 
-        fun render(samples: ShortArray, numSamples: Short): Boolean {
+        fun render(samples: ShortArray): Boolean {
             if (advance == 0u || period == 0u) return false
             var j = 0
-            var x = 0
-            while (x++ < numSamples) {
+            while (j < samples.size) {
                 count += advance
                 i = (i + (count / period)).toUShort()
                 count %= period
@@ -124,7 +123,7 @@ class AudioDevice(varvara: Varvara) : Device() {
                 val uxnAudio = audioStart(value)
                 val samples = ShortArray(1024)
                 executor.execute {
-                    while (uxnAudio.render(samples, 512)) {
+                    while (uxnAudio.render(samples)) {
                         player.play(samples)
                         for (i in samples.indices) samples[i] = 0
                     }
