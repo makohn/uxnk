@@ -76,8 +76,8 @@ suspend fun main(args: Array<String>) {
                 uxn.eval(mouse.vector)
             }
             is Event.Repaint -> {
-                SwingUtilities.invokeLater { gui.redraw() }
                 uxn.eval(varvara.screen.vector)
+                SwingUtilities.invokeLater { gui.redraw() }
             }
             is Event.StdIn -> {
                 val console = varvara.console
