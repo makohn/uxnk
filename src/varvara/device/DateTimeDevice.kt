@@ -1,5 +1,6 @@
 package varvara.device
 
+import util.*
 import varvara.Device
 import java.time.LocalDateTime
 import java.util.*
@@ -45,7 +46,11 @@ class DateTimeDevice : Device() {
         return when (port) {
             YEAR -> date.year.toUShort()
             DOTY -> (date.dayOfYear - 1).toUShort()
-            else -> error("readShort port=${port.toString(16)}")
+            else -> {
+                val hi = read(port)
+                val lo = read((port + 1u).toUByte())
+                UShort(hi, lo)
+            }
         }
     }
 }
