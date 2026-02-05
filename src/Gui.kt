@@ -25,9 +25,7 @@ class Gui(
         val mouseEventListener = MouseEventListener(scope)
 
         val timer = Timer(1000 / 60) {
-            scope.launch {
-                events.send(Event.Repaint)
-            }
+            events.trySend(Event.Repaint)
         }
         timer.start()
 
