@@ -20,11 +20,9 @@ class Gui(
     private lateinit var screenPanel: ScreenPanel
 
     fun start() {
-        val uxn = varvara.uxn
-
         screenPanel = ScreenPanel(varvara.screen)
         val controllerListener = ControllerListener(scope, screenPanel, this)
-        val mouseEventListener = MouseEventListener(scope, varvara, screenPanel)
+        val mouseEventListener = MouseEventListener(scope)
 
         val timer = Timer(1000 / 60) {
             scope.launch {
@@ -34,8 +32,8 @@ class Gui(
         timer.start()
 
         addKeyListener(controllerListener)
-        addMouseMotionListener(mouseEventListener)
-        addMouseListener(mouseEventListener)
+        screenPanel.addMouseMotionListener(mouseEventListener)
+        screenPanel.addMouseListener(mouseEventListener)
 
         screenPanel.background = varvara.screen.colors[0]
         add(screenPanel)
@@ -123,20 +121,12 @@ class Gui(
         }
     }
 
-    private class MouseEventListener(val scope: CoroutineScope, varvara: Varvara, private val screen: ScreenPanel) : MouseListener,
+    private class MouseEventListener(val scope: CoroutineScope) : MouseListener,
         MouseMotionListener, MouseWheelListener {
 
-        companion object {
-            const val WINDOW_BORDER = 5
-        }
-
         private fun onMouseMoved(e: MouseEvent) {
-            // TODO: This range check doesn't seem to be the optimal way to solve this.
-            //  Also x y don't seem to be correct in perifs test when compared to SDL2 implementation
-            if (e.x in WINDOW_BORDER..screen.width - WINDOW_BORDER && e.y in WINDOW_BORDER..screen.height - WINDOW_BORDER) {
-                scope.launch {
-                    events.send(Event.MouseMoved(e.x, e.y))
-                }
+            scope.launch {
+                events.send(Event.MouseMoved(e.x, e.y))
             }
         }
 
