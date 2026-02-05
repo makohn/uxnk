@@ -13,6 +13,7 @@ class FileDevice(varvara: Varvara) : Device() {
         const val SUCCESS: UByte = 0x2u
         const val STAT: UByte = 0x4u
         const val DELETE: UByte = 0x6u
+        const val NAME: UByte = 0x8u
         const val READ: UByte = 0xcu
         const val WRITE: UByte = 0xeu
     }
@@ -31,6 +32,9 @@ class FileDevice(varvara: Varvara) : Device() {
         get() = readShort(SUCCESS)
         set(value) = writeShort(SUCCESS, value)
 
+    private var reader: FileInputStream? = null
+    private var writer: FileOutputStream? = null
+
     override fun write(port: UByte, value: UByte) {
         super.write(port, value)
         when (port) {
@@ -45,17 +49,19 @@ class FileDevice(varvara: Varvara) : Device() {
     override fun writeShort(port: UByte, value: UShort) {
         super.writeShort(port, value)
         when (port) {
+            NAME -> closeFile()
             READ -> {
                 val file = File(name)
                 val address = value.toInt()
                 val size = length.coerceAtMost(uxn.memory.size - address)
                 if (file.isFile) {
-                    FileInputStream(file).use {
-                        val buffer = ByteArray(size)
-                        val read = it.read(buffer)
-                        buffer.toUByteArray().copyInto(uxn.memory, destinationOffset = address)
-                        success = read.toUShort()
+                    if (reader == null) {
+                        reader = FileInputStream(file)
                     }
+                    val buffer = ByteArray(size)
+                    val read = reader!!.read(buffer)
+                    buffer.toUByteArray().copyInto(uxn.memory, destinationOffset = address)
+                    success = read.coerceAtLeast(0).toUShort()
                 } else if (file.isDirectory) {
                     val files = file.listFiles()
                     if (files != null) {
@@ -72,13 +78,14 @@ class FileDevice(varvara: Varvara) : Device() {
                 if (!file.exists()) {
                     file.createNewFile()
                 }
-                FileOutputStream(file, append).use {
-                    val address = value.toInt()
-                    val size = length.coerceAtMost(uxn.memory.size - address)
-                    val buffer = ByteArray(size) { i -> uxn.memory[value + i.toUShort()].toByte() }
-                    it.write(buffer)
-                    success = size.toUShort()
+                if (writer == null) {
+                    writer = FileOutputStream(file, append)
                 }
+                val address = value.toInt()
+                val size = length.coerceAtMost(uxn.memory.size - address)
+                val buffer = ByteArray(size) { i -> uxn.memory[value + i.toUShort()].toByte() }
+                writer!!.write(buffer)
+                success = size.toUShort()
             }
             STAT -> {
                 val file = File(name)
@@ -105,5 +112,12 @@ class FileDevice(varvara: Varvara) : Device() {
                 }
             })
         }
+    }
+
+    private fun closeFile() {
+        reader?.close()
+        reader = null
+        writer?.close()
+        writer = null
     }
 }

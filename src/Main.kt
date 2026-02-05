@@ -1,8 +1,8 @@
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
+import util.*
 import varvara.Varvara
 import varvara.device.ConsoleDevice
 import java.io.File
@@ -15,7 +15,7 @@ sealed interface Event {
     class MouseMoved(val x: Int, val y: Int): Event
     class MousePressed(val button: UByte): Event
     class MouseReleased(val button: UByte): Event
-    class StdIn(val c: UByte): Event
+    class StdIn(val c: Char): Event
     object Repaint: Event
 }
 
@@ -28,17 +28,29 @@ suspend fun main(args: Array<String>) {
     val rom = File(romFile).readBytes().toUByteArray()
     uxn.loadRom(rom)
     uxn.eval()
+
+    if (varvara.console.vector != UShort_0) {
+        for (i in 1..<args.size) {
+            val arg = args[i]
+            for (c in arg) {
+                varvara.console.input(c, ConsoleDevice.ARGUMENT)
+            }
+            varvara.console.input(
+                '\n',
+                if (i == args.lastIndex) ConsoleDevice.ARGUMENT_END else ConsoleDevice.ARGUMENT_SPACER
+            )
+        }
+    }
+
     val gui = Gui(varvara)
     SwingUtilities.invokeLater { gui.start() }
 
     CoroutineScope(Dispatchers.IO).launch {
         while (true) {
-            val c = readln()[0].code.toUByte()
+            val c = readln()[0]
             events.send(Event.StdIn(c))
         }
     }
-
-    val mainScope = CoroutineScope(Dispatchers.Main)
 
     for (event in events) {
         when (event) {
@@ -82,7 +94,6 @@ suspend fun main(args: Array<String>) {
             is Event.StdIn -> {
                 val console = varvara.console
                 console.input(event.c, ConsoleDevice.STDIN)
-                uxn.eval(varvara.console.vector)
             }
         }
     }

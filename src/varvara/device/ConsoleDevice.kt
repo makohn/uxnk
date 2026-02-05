@@ -2,8 +2,9 @@ package varvara.device
 
 import util.*
 import varvara.Device
+import varvara.Varvara
 
-class ConsoleDevice : Device() {
+class ConsoleDevice(varvara: Varvara) : Device() {
 
     companion object {
         const val WRITE: UByte = 0x8u
@@ -18,6 +19,8 @@ class ConsoleDevice : Device() {
         const val ARGUMENT_END: UByte = 0x4u
     }
 
+    private val uxn = varvara.uxn
+
     val vector: UShort get() = UShort(memory[0], memory[1])
     val exec: UByte get() = memory[0xf]
 
@@ -29,8 +32,9 @@ class ConsoleDevice : Device() {
         }
     }
 
-    fun input(c: UByte, type: UByte) {
-        memory[READ] = c
+    fun input(c: Char, type: UByte) {
+        memory[READ] = c.code.toUByte()
         memory[TYPE] = type
+        uxn.eval(vector)
     }
 }

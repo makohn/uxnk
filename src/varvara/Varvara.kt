@@ -20,7 +20,7 @@ class Varvara : UxnDevice {
 
     val uxn = UxnMachine(this)
     val system = SystemDevice()
-    val console = ConsoleDevice()
+    val console = ConsoleDevice(this)
     val screen = ScreenDevice(this)
     val audio = Array(4) { AudioDevice(this) }
     val controller = ControllerDevice()
