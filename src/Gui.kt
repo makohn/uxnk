@@ -32,6 +32,7 @@ class Gui(
         addKeyListener(controllerListener)
         screenPanel.addMouseMotionListener(mouseEventListener)
         screenPanel.addMouseListener(mouseEventListener)
+        screenPanel.addMouseWheelListener(mouseEventListener)
 
         screenPanel.background = varvara.screen.colors[0]
         add(screenPanel)
@@ -149,7 +150,14 @@ class Gui(
         }
 
         override fun mouseWheelMoved(e: MouseWheelEvent) {
-            // TODO: Set scrollX and scrollY
+            val dir = e.wheelRotation.coerceIn(-1, 1)
+            scope.launch {
+                if (e.isShiftDown) {
+                    events.send(Event.MouseScrolled(dir, 0))
+                } else {
+                    events.send(Event.MouseScrolled(0, dir))
+                }
+            }
         }
 
         override fun mouseMoved(e: MouseEvent) = onMouseMoved(e)

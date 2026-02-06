@@ -24,6 +24,11 @@ class MouseDevice : Device() {
         writeShort(Y, y.toUShort())
     }
 
+    fun setScroll(x: Int, y: Int) {
+        writeShort(SCROLL_X, x.toUShort())
+        writeShort(SCROLL_Y, y.toUShort())
+    }
+
     fun setButton(button: UByte) {
         write(STATE, memory[STATE] or button)
     }

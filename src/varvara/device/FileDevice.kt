@@ -66,7 +66,7 @@ class FileDevice(varvara: Varvara) : Device() {
                     val files = file.listFiles()
                     if (files != null) {
                         val buffer = files.joinToString("\n") {
-                            "${it.stats()} ${file.name}${if (it.isDirectory) "/" else ""}"
+                            "${it.stats()} ${it.name}${if (it.isDirectory) "/" else ""}"
                         }.map { it.code.toUByte() }.take(size).toUByteArray()
                         buffer.toUByteArray().copyInto(uxn.memory, destinationOffset = address)
                         success = size.toUShort()

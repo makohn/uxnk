@@ -13,6 +13,7 @@ sealed interface Event {
     class ButtonReleased(val button: UByte): Event
     class KeyTyped(val key: Int): Event
     class MouseMoved(val x: Int, val y: Int): Event
+    class MouseScrolled(val x: Int, val y: Int): Event
     class MousePressed(val button: UByte): Event
     class MouseReleased(val button: UByte): Event
     class StdIn(val c: Char): Event
@@ -76,6 +77,12 @@ suspend fun main(args: Array<String>) {
                 val mouse = varvara.mouse
                 mouse.setPos(event.x, event.y)
                 uxn.eval(mouse.vector)
+            }
+            is Event.MouseScrolled -> {
+                val mouse = varvara.mouse
+                mouse.setScroll(event.x, event.y)
+                uxn.eval(mouse.vector)
+                mouse.setScroll(0, 0)
             }
             is Event.MousePressed -> {
                 val mouse = varvara.mouse
