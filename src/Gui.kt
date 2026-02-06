@@ -124,9 +124,7 @@ class Gui(
         MouseMotionListener, MouseWheelListener {
 
         private fun onMouseMoved(e: MouseEvent) {
-            scope.launch {
-                events.send(Event.MouseMoved(e.x, e.y))
-            }
+            events.trySend(Event.MouseMoved(e.x, e.y))
         }
 
         private inline fun onMouse(button: Int, fn: (UByte) -> Unit) {
