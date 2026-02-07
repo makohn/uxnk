@@ -70,10 +70,8 @@ class Gui(
                 setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_SPEED)
                 val s = scale.toDouble()
                 scale(s, s)
-                val w = screen.wmar2
-                val h = screen.hmar2
-                drawImage(screen.bg, 0, 0, w, h, 8, 8, w + 8, h + 8, null)
-                drawImage(screen.fg, 0, 0, w, h, 8, 8, w + 8, h + 8, null)
+                drawImage(screen.bg, -8, -8, null)
+                drawImage(screen.fg, -8, -8, null)
             }
         }
     }
