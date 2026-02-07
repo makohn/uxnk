@@ -53,12 +53,12 @@ class Gui(
         var scale = 1
             set(value) {
                 field = value
-                preferredSize = Dimension(screen.bg.width * value, screen.bg.height * value)
+                preferredSize = Dimension(screen.width.toInt() * value, screen.height.toInt() * value)
                 revalidate()
             }
 
         init {
-            preferredSize = Dimension(screen.bg.width, screen.bg.height)
+            preferredSize = Dimension(screen.width.toInt(), screen.height.toInt())
         }
 
         override fun paintComponent(g: Graphics?) {
@@ -70,8 +70,10 @@ class Gui(
                 setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_SPEED)
                 val s = scale.toDouble()
                 scale(s, s)
-                drawImage(screen.bg, 0, 0, null)
-                drawImage(screen.fg, 0, 0, null)
+                val w = screen.wmar2
+                val h = screen.hmar2
+                drawImage(screen.bg, 0, 0, w, h, 8, 8, w + 8, h + 8, null)
+                drawImage(screen.fg, 0, 0, w, h, 8, 8, w + 8, h + 8, null)
             }
         }
     }
