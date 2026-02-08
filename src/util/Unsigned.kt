@@ -22,4 +22,4 @@ fun UShort(hi: UByte, lo: UByte) = ((hi.toUInt() shl 8) + lo).toUShort()
 val UShort.hi: UByte get() = (this.toUInt() shr 8).toUByte()
 val UShort.lo: UByte get() = this.toUByte()
 
-fun UByte.test(mask: UByte) = (this and mask) > UByte_0
+fun UByte.test(mask: UByte) = (this and mask) != UByte_0
