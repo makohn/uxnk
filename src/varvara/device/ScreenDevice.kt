@@ -25,13 +25,15 @@ class ScreenDevice(varvara: Varvara) : Device() {
         const val UPPER_RIGHT: UByte = 0x20u
         const val UPPER_LEFT: UByte = 0x30u
 
-        private val TRANSPARENT = Color(0, 0, 0, 0)
-
-        private val blendingModes = arrayOf(
+        private val BLENDING = arrayOf(
             intArrayOf(0, 0, 0, 0, 1, 0, 1, 1, 2, 2, 0, 2, 3, 3, 3, 0),
             intArrayOf(0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3),
             intArrayOf(1, 2, 3, 1, 1, 2, 3, 1, 1, 2, 3, 1, 1, 2, 3, 1),
             intArrayOf(2, 3, 1, 2, 2, 3, 1, 2, 2, 3, 1, 2, 2, 3, 1, 2),
+        )
+
+        private val OPAQUE = arrayOf(
+            false, true, true, true, true, false, true, true, true, true, false, true, true, true, true, false
         )
     }
 
@@ -128,73 +130,56 @@ class ScreenDevice(varvara: Varvara) : Device() {
         val layer = if (fg) this.fg else this.bg
         val flipX = params.test(0x10u)
         val flipY = params.test(0x20u)
-        val c = (params and 0xfu).toInt()
-        val drawZero = c == 0 || c.mod(5) != 0
-
-        var sx = x.toInt()
-        var sy = y.toInt()
-        var dx = 1
-        var dy = 1
-
-        if (!flipX) {
-            sx += 7
-            dx = -1
-        }
-        if (flipY) {
-            sy += 7
-            dy = -1
-        }
-
+        val color = (params and 0xfu).toInt()
         val count = auto.toInt() shr 4
         val autoX = auto.test(0x1u)
         val autoY = auto.test(0x2u)
         val autoAddress = auto.test(0x4u)
 
+        var x = x
+        var y = y
         repeat(count + 1) {
-            var x = sx
-            var y = sy
-            for (i in 0..<8) {
-                val idxA = address.toInt() + i
-                val idxB = address.toInt() + i + 8
-                val pxA = uxn.memory[idxA].toInt()
-                val pxB = uxn.memory[idxB].toInt()
+            var addr = address
+            for (dy in 0..<8) {
+                val lo = uxn.memory[addr].toInt()
+                val hi = if (twoBitMode) uxn.memory[addr + 8u].toInt() else 0
+                addr++
 
-                for (j in 0..<8) {
-                    var px = ((pxA shr j) and 1)
-                    if (twoBitMode) {
-                        px = px or (((pxB shr j) and 1) shl 1)
+                val y = (y + (if (flipY) 7 - dy else dy).toUShort()).toUShort()
+                if (y.toInt() >= bg.height) continue
+
+                for (dx in 0..<8) {
+                    val x = (x + (if (flipX) 7 - dx else dx).toUShort()).toUShort()
+                    if (x.toInt() >= bg.width) continue
+
+                    val loBit = (lo shr (7 - dx)) and 0b1
+                    val hiBit = (hi shr (7 - dx)) and 0b1
+                    val data = (loBit or (hiBit shl 1))
+
+                    if (data != 0 || OPAQUE[color]) {
+                        val c = BLENDING[data][color]
+                        layer.setRGB(x.toInt(), y.toInt(), colors[c].rgb)
                     }
-                    px = blendingModes[px][c]
-                    if (drawZero || px > 0) {
-                        val color = if (!fg || px > 0) colors[px] else TRANSPARENT
-                        if (x < bg.width && y < bg.height) {
-                            layer.setRGB(x, y, color.rgb)
-                        }
-                    }
-                    x += dx
                 }
-                x += -dx * 8
-                y += dy
-            }
-            if (autoX) {
-                sy += 8 * dy
             }
             if (autoY) {
-                sx += -dx * 8
+                x = (x + (if (flipX) -8 else 8).toUShort()).toUShort()
             }
+            if (autoX) {
+                y = (y + (if (flipY) -8 else 8).toUShort()).toUShort()
+            }
+
             if (autoAddress) {
-                writeShort(ADDRESS, if (twoBitMode) {
-                    address + 0x10u
-                } else {
-                    address + 0x08u
-                }.toUShort())
+                writeShort(ADDRESS, if (twoBitMode) (addr + 8u).toUShort() else addr)
             }
         }
         if (autoX) {
-            writeShort(X, (this.x + (-dx * 8).toUShort()).toUShort())
+            val xx = if (flipX) this.x - 8u else this.x + 8u
+            writeShort(X, xx.toUShort())
         }
         if (autoY) {
-            writeShort(Y, (this.y + (dy * 8).toUShort()).toUShort())
+            val yy = if (flipY) this.y - 8u else this.y + 8u
+            writeShort(Y, yy.toUShort())
         }
     }
 }
