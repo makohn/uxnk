@@ -25,6 +25,8 @@ class ScreenDevice(varvara: Varvara) : Device() {
         const val UPPER_RIGHT: UByte = 0x20u
         const val UPPER_LEFT: UByte = 0x30u
 
+        private val TRANSPARENT = Color(0, 0, 0, 0)
+
         private val BLENDING = arrayOf(
             intArrayOf(0, 0, 0, 0, 1, 0, 1, 1, 2, 2, 0, 2, 3, 3, 3, 0),
             intArrayOf(0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3),
@@ -158,7 +160,8 @@ class ScreenDevice(varvara: Varvara) : Device() {
 
                     if (data != 0 || OPAQUE[color]) {
                         val c = BLENDING[data][color]
-                        layer.setRGB(x.toInt(), y.toInt(), colors[c].rgb)
+                        val rgb = (if (fg && c == 0) TRANSPARENT else colors[c]).rgb
+                        layer.setRGB(x.toInt(), y.toInt(), rgb)
                     }
                 }
             }
