@@ -9,9 +9,8 @@ import java.awt.image.BufferedImage
 class ScreenDevice(varvara: Varvara) : Device() {
 
     companion object {
-        const val SCREEN_MARGIN = 16
-        const val DEFAULT_WIDTH: Int = (64 * 8) + SCREEN_MARGIN
-        const val DEFAULT_HEIGHT: Int = (40 * 8) + SCREEN_MARGIN
+        const val DEFAULT_WIDTH: Int = 64 * 8
+        const val DEFAULT_HEIGHT: Int = 40 * 8
 
         const val WIDTH: UByte = 0x2u
         const val HEIGHT: UByte = 0x4u
@@ -60,15 +59,10 @@ class ScreenDevice(varvara: Varvara) : Device() {
     private val address: UShort get() = UShort(memory[0xc], memory[0xd])
     private val auto: UByte get() = memory[0x6]
 
-    var width = DEFAULT_WIDTH.toUShort(); private set
-    var height = DEFAULT_HEIGHT.toUShort(); private set
-    var wmar2 = width.toInt() + SCREEN_MARGIN
-    var hmar2 = height.toInt() + SCREEN_MARGIN
-
     override fun readShort(port: UByte): UShort {
         return when (port) {
-            WIDTH -> wmar2.toUShort()
-            HEIGHT -> hmar2.toUShort()
+            WIDTH -> bg.width.toUShort()
+            HEIGHT -> bg.height.toUShort()
             else -> super.readShort(port)
         }
     }
@@ -85,16 +79,12 @@ class ScreenDevice(varvara: Varvara) : Device() {
         super.writeShort(port, value)
         when (port) {
             WIDTH -> {
-                width = value
-                wmar2 = value.toInt() + SCREEN_MARGIN
-                bg = BufferedImage(wmar2, bg.height, bg.type)
-                fg = BufferedImage(wmar2, fg.height, fg.type)
+                bg = BufferedImage(value.toInt(), bg.height, bg.type)
+                fg = BufferedImage(value.toInt(), fg.height, fg.type)
             }
             HEIGHT -> {
-                height = value
-                hmar2 = value.toInt() + SCREEN_MARGIN
-                bg = BufferedImage(bg.width, hmar2, bg.type)
-                fg = BufferedImage(fg.width, hmar2, fg.type)
+                bg = BufferedImage(bg.width, value.toInt(), bg.type)
+                fg = BufferedImage(fg.width, value.toInt(), fg.type)
             }
         }
     }
@@ -170,7 +160,6 @@ class ScreenDevice(varvara: Varvara) : Device() {
                 val pxB = uxn.memory[idxB].toInt()
 
                 for (j in 0..<8) {
-                    if (x >= wmar2 || y >= hmar2) break
                     var px = ((pxA shr j) and 1)
                     if (twoBitMode) {
                         px = px or (((pxB shr j) and 1) shl 1)
@@ -178,7 +167,9 @@ class ScreenDevice(varvara: Varvara) : Device() {
                     px = blendingModes[px][c]
                     if (drawZero || px > 0) {
                         val color = if (!fg || px > 0) colors[px] else TRANSPARENT
-                        layer.setRGB(x, y, color.rgb)
+                        if (x < bg.width && y < bg.height) {
+                            layer.setRGB(x, y, color.rgb)
+                        }
                     }
                     x += dx
                 }
