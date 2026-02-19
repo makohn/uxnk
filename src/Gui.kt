@@ -109,7 +109,12 @@ class Gui(
 
         override fun keyTyped(e: KeyEvent) {
             var keyCode = e.keyChar.code
-            if (keyCode in 0x0..<0x80) {
+            if (keyCode == 10) { // Enter
+                scope.launch {
+                    events.send(Event.KeyTyped(13))
+                }
+            }
+            else if (keyCode in 0x0..<0x80) {
                 if (e.isControlDown && keyCode in 0x1..0x1a) {
                     keyCode += if (e.isShiftDown) 0x40 else 0x60
                 }
