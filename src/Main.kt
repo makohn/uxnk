@@ -76,7 +76,7 @@ suspend fun main(args: Array<String>) {
             is Event.MouseMoved -> {
                 val mouse = varvara.mouse
                 mouse.setPos(event.x, event.y)
-                uxn.eval(mouse.vector)
+                if (mouse.vector != UShort_0) uxn.eval(mouse.vector)
             }
             is Event.MouseScrolled -> {
                 val mouse = varvara.mouse
@@ -95,7 +95,8 @@ suspend fun main(args: Array<String>) {
                 uxn.eval(mouse.vector)
             }
             is Event.Repaint -> {
-                uxn.eval(varvara.screen.vector)
+                val screen = varvara.screen
+                if (screen.vector != UShort_0) uxn.eval(screen.vector)
                 SwingUtilities.invokeLater { gui.redraw() }
             }
             is Event.StdIn -> {
