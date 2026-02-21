@@ -6,8 +6,9 @@ import varvara.device.*
 
 class Varvara : UxnDevice {
 
-    val uxn = UxnMachine(this)
-    val system = SystemDevice()
+    val ram = Array(16) { UByteArray(0x10000) }
+    val uxn = UxnMachine(this, ram[0])
+    val system = SystemDevice(this)
     val console = ConsoleDevice(this)
     val screen = ScreenDevice(this)
     val audio = Array(4) { AudioDevice(this) }

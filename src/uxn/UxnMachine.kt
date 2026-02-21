@@ -2,9 +2,11 @@ package uxn
 
 import util.*
 
-class UxnMachine(val device: UxnDevice) {
+class UxnMachine(
+    val device: UxnDevice,
+    val memory: UByteArray = UByteArray(0x10000)
+) {
 
-    val memory = UByteArray(65536)
     val workingStack = UxnStack()
     val returnStack = UxnStack()
     var pc: UShort = 0x100u; private set
