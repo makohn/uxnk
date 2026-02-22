@@ -21,14 +21,16 @@ object AudioPlayer {
     val lock = ReentrantLock()
 
     fun start(varvara: Varvara) {
-        line.open(format)
+        line.open(format, 8192)
         line.start()
 
         thread(start = true, isDaemon = true) {
             while (true) {
                 ready.await()
                 ready = CountDownLatch(1)
-//                line.flush() TODO: This makes the piano example much faster but it breaks the output meter
+                line.flush()
+                line.stop()
+                line.start()
                 executor.execute {
                     var running = true
                     while (running) {
