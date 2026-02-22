@@ -17,6 +17,7 @@ sealed interface Event {
     class MousePressed(val button: UByte): Event
     class MouseReleased(val button: UByte): Event
     class StdIn(val c: Char): Event
+    class AudioFinished(val id: Int): Event
     object Repaint: Event
 }
 
@@ -43,6 +44,7 @@ suspend fun main(args: Array<String>) {
         }
     }
 
+    AudioPlayer.start(varvara)
     val gui = Gui(varvara)
     SwingUtilities.invokeLater { gui.start() }
 
@@ -102,6 +104,10 @@ suspend fun main(args: Array<String>) {
             is Event.StdIn -> {
                 val console = varvara.console
                 console.input(event.c, ConsoleDevice.STDIN)
+            }
+            is Event.AudioFinished -> {
+                val audio = varvara.audio[event.id]
+                varvara.uxn.eval(audio.vector)
             }
         }
     }
