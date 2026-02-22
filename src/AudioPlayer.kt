@@ -1,6 +1,6 @@
 import varvara.Varvara
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
-import java.util.concurrent.Semaphore
 import java.util.concurrent.locks.ReentrantLock
 import javax.sound.sampled.AudioFormat
 import javax.sound.sampled.AudioSystem
@@ -14,7 +14,7 @@ object AudioPlayer {
     private val info = DataLine.Info(SourceDataLine::class.java, format)
     private val line = AudioSystem.getLine(info) as SourceDataLine
 
-    private val ready = Semaphore(1)
+    private var ready = CountDownLatch(1)
     private val samples = ShortArray(1024)
     private val executor = Executors.newSingleThreadExecutor()
 
@@ -26,8 +26,9 @@ object AudioPlayer {
 
         thread(start = true, isDaemon = true) {
             while (true) {
-                ready.acquire()
-                line.flush()
+                ready.await()
+                ready = CountDownLatch(1)
+//                line.flush() TODO: This makes the piano example much faster but it breaks the output meter
                 executor.execute {
                     var running = true
                     while (running) {
@@ -35,8 +36,6 @@ object AudioPlayer {
                         for (device in varvara.audio.indices) {
                             if (varvara.audio[device].render(samples)) {
                                 running = true
-                            } else {
-                                events.trySend(Event.AudioFinished(device))
                             }
                         }
                         play(samples)
@@ -48,7 +47,7 @@ object AudioPlayer {
     }
 
     fun unpause() {
-        ready.release()
+        ready.countDown()
     }
 
     private fun play(buffer: ShortArray): Int {

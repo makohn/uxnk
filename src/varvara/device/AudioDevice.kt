@@ -1,13 +1,18 @@
 package varvara.device
 
+import AudioPlayer
+import Event
+import events
 import util.*
 import varvara.Device
 import varvara.Varvara
 import kotlin.concurrent.withLock
 
-class AudioDevice(varvara: Varvara) : Device() {
+class AudioDevice(val id: Int, varvara: Varvara) : Device() {
 
     companion object {
+        const val POSITION: UByte = 0x2u
+        const val OUTPUT: UByte = 0x4u
         const val PITCH: UByte = 0xfu
 
         const val SAMPLE_RATE = 44100
@@ -26,14 +31,20 @@ class AudioDevice(varvara: Varvara) : Device() {
     private var audio: Audio = NoopAudio
 
     private interface Audio {
+        val output: UByte
+        val position: UShort
+
         fun render(samples: ShortArray): Boolean
     }
 
     private object NoopAudio : Audio {
+        override val output = UByte_0
+        override val position = UShort_0
         override fun render(samples: ShortArray) = false
     }
 
-     private class AudioImpl(
+    private class AudioImpl(
+        private val id: Int,
         private val uxnMemory: UByteArray,
         private val address: UShort,
         private val length: UShort,
@@ -46,7 +57,7 @@ class AudioDevice(varvara: Varvara) : Device() {
         private val volumeLeft: Byte,
         private val volumeRight: Byte,
         private var advance: UInt
-    ): Audio {
+    ) : Audio {
         private var count = 0u
         private var age = 0
         private var i: UShort = 0u
@@ -83,8 +94,27 @@ class AudioDevice(varvara: Varvara) : Device() {
                 samples[j] = (samples[j++] + (sample * volumeLeft / 0x180)).toShort()
                 samples[j] = (samples[j++] + (sample * volumeRight / 0x180)).toShort()
             }
+            if (advance == 0u) events.trySend(Event.AudioFinished(id))
             return true
         }
+
+        override val output: UByte
+            get() {
+                if (advance == 0u || period == 0u) return UByte_0
+
+                val outputLeft = if (volumeLeft != 0.toByte()) {
+                    (1 + envelope(age) * volumeLeft / 0x800).coerceAtMost(0xf)
+                } else 0
+
+                val outputRight = if (volumeRight != 0.toByte()) {
+                    (1 + envelope(age) * volumeRight / 0x800).coerceAtMost(0xf)
+                } else 0
+
+                val ret = ((outputLeft shl 4).toUByte() or outputRight.toUByte())
+                return ret
+            }
+
+        override val position: UShort get() = i
     }
 
     private fun audioStart(value: UByte) {
@@ -104,6 +134,7 @@ class AudioDevice(varvara: Varvara) : Device() {
         val period = if (length <= 0x100u) (NOTE_PERIOD * 337 / 2 / len.toInt()).toUInt() else NOTE_PERIOD.toUInt()
 
         this.audio = AudioImpl(
+            id,
             uxn.memory,
             address,
             length,
@@ -128,6 +159,20 @@ class AudioDevice(varvara: Varvara) : Device() {
                 }
                 AudioPlayer.unpause()
             }
+        }
+    }
+
+    override fun read(port: UByte): UByte {
+        return when (port) {
+            OUTPUT -> audio.output
+            else -> super.read(port)
+        }
+    }
+
+    override fun readShort(port: UByte): UShort {
+        return when (port) {
+            POSITION -> audio.position
+            else -> super.readShort(port)
         }
     }
 

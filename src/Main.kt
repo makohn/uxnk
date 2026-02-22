@@ -107,7 +107,7 @@ suspend fun main(args: Array<String>) {
             }
             is Event.AudioFinished -> {
                 val audio = varvara.audio[event.id]
-                varvara.uxn.eval(audio.vector)
+                if (audio.vector != UShort_0) varvara.uxn.eval(audio.vector)
             }
         }
     }
