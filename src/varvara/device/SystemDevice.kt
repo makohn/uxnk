@@ -8,6 +8,8 @@ class SystemDevice(private val varvara: Varvara) : Device() {
 
     companion object {
         const val EXPANSION: UByte = 0x2u
+        const val WST: UByte = 0x3u
+        const val RST: UByte = 0x4u
 
         const val FILL: UByte = 0u
         const val COPY_LEFT: UByte = 1u
@@ -19,6 +21,22 @@ class SystemDevice(private val varvara: Varvara) : Device() {
     val red: UShort get() = UShort(memory[0x8], memory[0x9])
     val green: UShort get() = UShort(memory[0xa], memory[0xb])
     val blue: UShort get() = UShort(memory[0xc], memory[0xd])
+
+    override fun write(port: UByte, value: UByte) {
+        super.write(port, value)
+        when (port) {
+            WST -> uxn.workingStack.ptr = value
+            RST -> uxn.returnStack.ptr = value
+        }
+    }
+
+    override fun read(port: UByte): UByte {
+        return when (port) {
+            WST -> uxn.workingStack.ptr
+            RST -> uxn.returnStack.ptr
+            else -> super.read(port)
+        }
+    }
 
     override fun writeShort(port: UByte, value: UShort) {
         super.writeShort(port, value)

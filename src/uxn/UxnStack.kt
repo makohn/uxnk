@@ -5,7 +5,7 @@ import util.*
 class UxnStack {
 
     private val bytes = UByteArray(256)
-    private var ptr: UByte = 255u
+    var ptr: UByte = 255u
     private var keepPtr: UByte? = null
 
     fun push(element: UByte) {
