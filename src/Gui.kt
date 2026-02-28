@@ -11,6 +11,7 @@ import java.awt.image.BufferedImage
 import javax.swing.JFrame
 import javax.swing.JPanel
 import javax.swing.Timer
+import kotlin.system.exitProcess
 
 class Gui(
     private val varvara: Varvara,
@@ -75,6 +76,15 @@ class Gui(
                 }
             }
 
+        var borderless = false
+            set(value) {
+                field = value
+                gui.dispose()
+                gui.isUndecorated = value
+                gui.isVisible = true
+                gui.requestFocus()
+            }
+
         init {
             preferredSize = Dimension(screen.bg.width, screen.bg.height)
         }
@@ -119,7 +129,9 @@ class Gui(
         override fun keyPressed(e: KeyEvent) {
             when (e.keyCode) {
                 KeyEvent.VK_F1 -> screen.scale = 1 + (screen.scale % 3)
+                KeyEvent.VK_F3 -> exitProcess(127)
                 KeyEvent.VK_F11 -> screen.fullscreen = !screen.fullscreen
+                KeyEvent.VK_F12 -> screen.borderless = !screen.borderless
             }
             scope.launch {
                 onKey(e.keyCode) { events.send(Event.ButtonPressed(it)) }
