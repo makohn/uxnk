@@ -20,8 +20,8 @@ class Gui(
     private lateinit var screenPanel: ScreenPanel
 
     fun start() {
-        screenPanel = ScreenPanel(varvara.screen)
-        val controllerListener = ControllerListener(scope, screenPanel, this)
+        screenPanel = ScreenPanel(varvara.screen, this)
+        val controllerListener = ControllerListener(scope, screenPanel)
         val mouseEventListener = MouseEventListener(scope)
 
         val timer = Timer(1000 / 60) {
@@ -48,13 +48,31 @@ class Gui(
         screenPanel.repaint()
     }
 
-    private class ScreenPanel(private val screen: ScreenDevice) : JPanel() {
+    private class ScreenPanel(private val screen: ScreenDevice, private val gui: JFrame) : JPanel() {
+
+        private val screenDevice = GraphicsEnvironment.getLocalGraphicsEnvironment().defaultScreenDevice
+
+        private var scaleX = 1.0
+        private var scaleY = 1.0
 
         var scale = 1
             set(value) {
                 field = value
-                preferredSize = Dimension(screen.bg.width * value, screen.bg.height * value)
-                revalidate()
+                if (!fullscreen) rescale()
+            }
+
+        var fullscreen = false
+            set(value) {
+                field = value
+                if (value) {
+                    screenDevice.fullScreenWindow = gui
+                    val screenSize = Toolkit.getDefaultToolkit().screenSize
+                    this.scaleX = screenSize.width.toDouble() / screen.bg.width
+                    this.scaleY = screenSize.height.toDouble() / screen.bg.height
+                } else {
+                    screenDevice.fullScreenWindow = null
+                    rescale()
+                }
             }
 
         init {
@@ -68,15 +86,22 @@ class Gui(
                 setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED)
                 setRenderingHint(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_SPEED)
                 setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_SPEED)
-                val s = scale.toDouble()
-                scale(s, s)
+                scale(scaleX, scaleY)
                 drawImage(screen.bg, 0, 0, null)
                 drawImage(screen.fg, 0, 0, null)
             }
         }
+
+        private fun rescale() {
+            this.scaleX = scale.toDouble()
+            this.scaleY = scale.toDouble()
+            preferredSize = Dimension(screen.bg.width * scale, screen.bg.height * scale)
+            revalidate()
+            gui.pack()
+        }
     }
 
-    private class ControllerListener(private val scope: CoroutineScope, private val screen: ScreenPanel, private val gui: JFrame) : KeyListener {
+    private class ControllerListener(private val scope: CoroutineScope, private val screen: ScreenPanel) : KeyListener {
 
         private inline fun onKey(keyCode: Int, fn: (UByte) -> Unit) {
             when (keyCode) {
@@ -92,9 +117,9 @@ class Gui(
         }
 
         override fun keyPressed(e: KeyEvent) {
-            if (e.keyCode == KeyEvent.VK_F1) {
-                screen.scale = 1 + (screen.scale % 3)
-                gui.pack()
+            when (e.keyCode) {
+                KeyEvent.VK_F1 -> screen.scale = 1 + (screen.scale % 3)
+                KeyEvent.VK_F11 -> screen.fullscreen = !screen.fullscreen
             }
             scope.launch {
                 onKey(e.keyCode) { events.send(Event.ButtonPressed(it)) }
