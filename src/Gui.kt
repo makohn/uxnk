@@ -39,6 +39,7 @@ class Gui(
         add(screenPanel)
         pack()
 
+        setLocationRelativeTo(null)
         cursor = toolkit.createCustomCursor(BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB), Point(), null)
         defaultCloseOperation = EXIT_ON_CLOSE
         isResizable = false
@@ -55,6 +56,8 @@ class Gui(
 
         private var scaleX = 1.0
         private var scaleY = 1.0
+        private var offsetX = 0
+        private var offsetY = 0
 
         var scale = 1
             set(value) {
@@ -68,10 +71,16 @@ class Gui(
                 if (value) {
                     screenDevice.fullScreenWindow = gui
                     val screenSize = Toolkit.getDefaultToolkit().screenSize
-                    this.scaleX = screenSize.width.toDouble() / screen.bg.width
-                    this.scaleY = screenSize.height.toDouble() / screen.bg.height
+                    val scale = (screenSize.height.toDouble() / screen.bg.height)
+                        .coerceAtMost(screenSize.width.toDouble() / screen.bg.width)
+                    this.scaleX = scale
+                    this.scaleY = scale
+                    this.offsetX = ((screenSize.width / scale - screen.bg.width) / 2).toInt()
+                    this.offsetY = ((screenSize.height / scale - screen.bg.height) / 2).toInt()
                 } else {
                     screenDevice.fullScreenWindow = null
+                    this.offsetX = 0
+                    this.offsetY = 0
                     rescale()
                 }
             }
@@ -82,6 +91,7 @@ class Gui(
                 gui.dispose()
                 gui.isUndecorated = value
                 gui.isVisible = true
+                gui.pack()
                 gui.requestFocus()
             }
 
@@ -97,8 +107,8 @@ class Gui(
                 setRenderingHint(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_SPEED)
                 setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_SPEED)
                 scale(scaleX, scaleY)
-                drawImage(screen.bg, 0, 0, null)
-                drawImage(screen.fg, 0, 0, null)
+                drawImage(screen.bg, offsetX, offsetY, null)
+                drawImage(screen.fg, offsetX, offsetY, null)
             }
         }
 
