@@ -65,10 +65,13 @@ class FileDevice(varvara: Varvara) : Device() {
                 } else if (file.isDirectory) {
                     val files = file.listFiles()
                     if (files != null) {
-                        val buffer = files.joinToString("\n") {
-                            "${it.stats()} ${it.name}${if (it.isDirectory) "/" else ""}"
-                        }.map { it.code.toUByte() }.take(size).toUByteArray()
-                        buffer.toUByteArray().copyInto(uxn.memory, destinationOffset = address)
+                        val buffer = ByteArray(size)
+                        files
+                            .joinToString("\n") { "${it.stats()} ${it.name}${if (it.isDirectory) "/" else ""}" }
+                            .toByteArray()
+                            .copyInto(buffer)
+                            .toUByteArray()
+                            .copyInto(uxn.memory, destinationOffset = address)
                         success = size.toUShort()
                     }
                 }
