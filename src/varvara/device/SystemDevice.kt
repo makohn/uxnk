@@ -22,6 +22,8 @@ class SystemDevice(private val varvara: Varvara) : Device() {
     val green: UShort get() = UShort(memory[0xa], memory[0xb])
     val blue: UShort get() = UShort(memory[0xc], memory[0xd])
 
+    val state: UByte get() = memory[0xfu]
+
     override fun write(port: UByte, value: UByte) {
         super.write(port, value)
         when (port) {

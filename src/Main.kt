@@ -7,6 +7,7 @@ import varvara.Varvara
 import varvara.device.ConsoleDevice
 import java.io.File
 import javax.swing.SwingUtilities
+import kotlin.system.exitProcess
 
 sealed interface Event {
     class ButtonPressed(val button: UByte): Event
@@ -109,6 +110,10 @@ suspend fun main(args: Array<String>) {
                 val audio = varvara.audio[event.id]
                 if (audio.vector != UShort_0) varvara.uxn.eval(audio.vector)
             }
+        }
+        val state = varvara.system.state
+        if (state != UByte_0) {
+            exitProcess(state.toInt() and 0x7f)
         }
     }
 }
