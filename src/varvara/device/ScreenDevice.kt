@@ -20,11 +20,6 @@ class ScreenDevice(varvara: Varvara) : Device() {
         const val PIXEL: UByte = 0xeu
         const val SPRITE: UByte = 0xfu
 
-        const val BOTTOM_RIGHT: UByte = 0x00u
-        const val BOTTOM_LEFT: UByte = 0x10u
-        const val UPPER_RIGHT: UByte = 0x20u
-        const val UPPER_LEFT: UByte = 0x30u
-
         private val TRANSPARENT = Color(0, 0, 0, 0)
 
         private val BLENDING = arrayOf(
@@ -95,7 +90,8 @@ class ScreenDevice(varvara: Varvara) : Device() {
 
     private fun drawPixel(params: UByte) {
         val color = colors[(params and 0x3u).toInt()]
-        val flip = params and 0x30u
+        val flipX = params.test(0x10u)
+        val flipY = params.test(0x20u)
         val layer = if (params.test(0x40u)) fg else bg
         val fill = params.test(0x80u)
 
@@ -103,14 +99,9 @@ class ScreenDevice(varvara: Varvara) : Device() {
         val y = this.y.toInt()
 
         if (fill) {
-            val g = layer.createGraphics()
-            g.color = color
-            when (flip) {
-                BOTTOM_RIGHT -> g.fillRect(x, y, layer.width, layer.height)
-                BOTTOM_LEFT -> g.fillRect(0, y, layer.width - x, layer.height)
-                UPPER_RIGHT -> g.fillRect(x, 0, layer.width, layer.height - y)
-                UPPER_LEFT -> g.fillRect(0, 0, layer.width - x, layer.height - y)
-            }
+            val xr = if (flipX) 0..<x else x..<layer.width
+            val yr = if (flipY) 0..<y else y..<layer.height
+            for (x in xr) for (y in yr) layer.setRGB(x, y, color.rgb)
         } else {
             if (x < bg.width && y < bg.height) {
                 layer.setRGB(x, y, color.rgb)
