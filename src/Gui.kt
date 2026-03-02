@@ -50,6 +50,10 @@ class Gui(
         screenPanel.repaint()
     }
 
+    fun resize() {
+        screenPanel.resize()
+    }
+
     private class ScreenPanel(private val screen: ScreenDevice, private val gui: JFrame) : JPanel() {
 
         private val screenDevice = GraphicsEnvironment.getLocalGraphicsEnvironment().defaultScreenDevice
@@ -117,6 +121,14 @@ class Gui(
             this.scaleY = scale.toDouble()
             preferredSize = Dimension(screen.bg.width * scale, screen.bg.height * scale)
             revalidate()
+            gui.pack()
+        }
+
+        fun resize() {
+            invalidate()
+            preferredSize = Dimension(screen.bg.width * scale, screen.bg.height * scale)
+            revalidate()
+            repaint()
             gui.pack()
         }
     }

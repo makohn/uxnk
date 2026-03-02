@@ -1,5 +1,10 @@
 package varvara.device
 
+import Event
+import events
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import util.*
 import varvara.Device
 import varvara.Varvara
@@ -80,10 +85,16 @@ class ScreenDevice(varvara: Varvara) : Device() {
             WIDTH -> {
                 bg = BufferedImage(value.toInt(), bg.height, bg.type)
                 fg = BufferedImage(value.toInt(), fg.height, fg.type)
+                CoroutineScope(Dispatchers.Default).launch {
+                    events.send(Event.Resize)
+                }
             }
             HEIGHT -> {
                 bg = BufferedImage(bg.width, value.toInt(), bg.type)
                 fg = BufferedImage(fg.width, value.toInt(), fg.type)
+                CoroutineScope(Dispatchers.Default).launch {
+                    events.send(Event.Resize)
+                }
             }
         }
     }

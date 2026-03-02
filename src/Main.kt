@@ -20,6 +20,7 @@ sealed interface Event {
     class StdIn(val c: Char): Event
     class AudioFinished(val id: Int): Event
     object Repaint: Event
+    object Resize: Event
 }
 
 val events = Channel<Event>()
@@ -109,6 +110,9 @@ suspend fun main(args: Array<String>) {
             is Event.AudioFinished -> {
                 val audio = varvara.audio[event.id]
                 if (audio.vector != UShort_0) varvara.uxn.eval(audio.vector)
+            }
+            is Event.Resize -> {
+                gui.resize()
             }
         }
         val state = varvara.system.state
