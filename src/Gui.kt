@@ -5,6 +5,7 @@ import varvara.Varvara
 import varvara.device.ControllerDevice
 import varvara.device.MouseDevice
 import varvara.device.ScreenDevice
+import varvara.device.SystemDevice
 import java.awt.*
 import java.awt.event.*
 import java.awt.image.BufferedImage
@@ -22,7 +23,7 @@ class Gui(
 
     fun start() {
         screenPanel = ScreenPanel(varvara.screen, this)
-        val controllerListener = ControllerListener(scope, screenPanel)
+        val controllerListener = ControllerListener(scope, varvara.system, screenPanel)
         val mouseEventListener = MouseEventListener(scope)
 
         val timer = Timer(1000 / 60) {
@@ -133,7 +134,11 @@ class Gui(
         }
     }
 
-    private class ControllerListener(private val scope: CoroutineScope, private val screen: ScreenPanel) : KeyListener {
+    private class ControllerListener(
+        private val scope: CoroutineScope,
+        private val systemDevice: SystemDevice,
+        private val screen: ScreenPanel
+    ) : KeyListener {
 
         private inline fun onKey(keyCode: Int, fn: (UByte) -> Unit) {
             when (keyCode) {
@@ -151,6 +156,7 @@ class Gui(
         override fun keyPressed(e: KeyEvent) {
             when (e.keyCode) {
                 KeyEvent.VK_F1 -> screen.scale = 1 + (screen.scale % 3)
+                KeyEvent.VK_F2 -> systemDevice.write(SystemDevice.DEBUG, 1u)
                 KeyEvent.VK_F3 -> exitProcess(127)
                 KeyEvent.VK_F11 -> screen.fullscreen = !screen.fullscreen
                 KeyEvent.VK_F12 -> screen.borderless = !screen.borderless

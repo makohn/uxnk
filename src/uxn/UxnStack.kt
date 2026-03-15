@@ -36,7 +36,20 @@ class UxnStack {
         keepPtr = null
     }
 
-    override fun toString(): String {
-        return bytes.joinToString(" ") { it.toString(16) }
+    override fun toString() = buildString {
+        val p = ptr.toInt()
+        val start = (p - 8) and 0xff
+
+        append(if (start != 0) " " else "|")
+
+        var i = start
+        while (i != p) {
+            append(bytes[i].toString(16).padStart(2, '0'))
+            append(if (i == 0xff) "|" else " ")
+            i = (i + 1) and 0xff
+        }
+
+        append("<")
+        append(p.toString(16).padStart(2, '0'))
     }
 }

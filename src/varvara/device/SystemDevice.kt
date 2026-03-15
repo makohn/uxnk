@@ -10,6 +10,7 @@ class SystemDevice(private val varvara: Varvara) : Device() {
         const val EXPANSION: UByte = 0x2u
         const val WST: UByte = 0x3u
         const val RST: UByte = 0x4u
+        const val DEBUG: UByte = 0xeu
 
         const val FILL: UByte = 0u
         const val COPY_LEFT: UByte = 1u
@@ -29,6 +30,10 @@ class SystemDevice(private val varvara: Varvara) : Device() {
         when (port) {
             WST -> uxn.workingStack.ptr = value
             RST -> uxn.returnStack.ptr = value
+            DEBUG -> {
+                System.err.println("WST ${uxn.workingStack}")
+                System.err.println("RST ${uxn.returnStack}")
+            }
         }
     }
 

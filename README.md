@@ -23,6 +23,7 @@ java -jar uxnk.jar [ROM] [ARGS]...
 | Key            | Description                      |
 |----------------|----------------------------------|
 | <kbd>F1</kbd>  | Toggle between three zoom levels |
+| <kbd>F2</kdb>  | Print stack contents to console  |
 | <kbd>F3</kbd>  | Exit the program with code `127` |
 | <kbd>F11</kbd> | Toggle fullscreen mode           |
 | <kbd>F12</kbd> | Toggle borderless window mode    |
